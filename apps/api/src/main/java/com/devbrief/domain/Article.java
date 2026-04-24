@@ -10,6 +10,11 @@ import java.time.Instant;
         @Index(name = "idx_article_published", columnList = "publishedAt")
 })
 public class Article {
+    private static final int TITLE_MAX_LENGTH = 500;
+    private static final int URL_MAX_LENGTH = 1000;
+    private static final int AUTHOR_MAX_LENGTH = 255;
+    private static final int EXCERPT_MAX_LENGTH = 500;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -41,11 +46,11 @@ public class Article {
 
     private Article(Source source, String title, String url, String author, Instant publishedAt, String excerpt, String contentHash) {
         this.source = source;
-        this.title = title;
-        this.url = url;
-        this.author = author;
+        this.title = truncate(title, TITLE_MAX_LENGTH);
+        this.url = truncate(url, URL_MAX_LENGTH);
+        this.author = truncate(author, AUTHOR_MAX_LENGTH);
         this.publishedAt = publishedAt;
-        this.excerpt = excerpt;
+        this.excerpt = truncate(excerpt, EXCERPT_MAX_LENGTH);
         this.contentHash = contentHash;
         this.createdAt = Instant.now();
     }
@@ -84,5 +89,12 @@ public class Article {
 
     public String getContentHash() {
         return contentHash;
+    }
+
+    private static String truncate(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, maxLength);
     }
 }

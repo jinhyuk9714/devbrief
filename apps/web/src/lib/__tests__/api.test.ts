@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getTodayBriefings } from "../api";
+import { getSourceStatus, getTodayBriefings } from "../api";
 
 describe("api client", () => {
   afterEach(() => {
@@ -21,5 +21,14 @@ describe("api client", () => {
       "http://localhost:8080/api/briefings/today",
       expect.objectContaining({ cache: "no-store" })
     );
+  });
+
+  it("falls back to demo source status when the API is unavailable", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network down")));
+
+    const status = await getSourceStatus();
+
+    expect(status.sources.length).toBeGreaterThan(0);
+    expect(status.sources[0].lastFetchStatus).toBeTruthy();
   });
 });

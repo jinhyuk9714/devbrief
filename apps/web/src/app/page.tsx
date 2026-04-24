@@ -40,10 +40,16 @@ export default async function HomePage() {
         <div className="desk-heading">
           <div>
             <p className="eyebrow">오늘의 AI/개발 브리핑</p>
-            <h1>5분 안에 읽고 바로 해볼 것까지 정리합니다</h1>
+            <h1 aria-label="5분 안에 읽고 바로 해볼 것까지 정리합니다">
+              <span>5분 안에 읽고</span>
+              <span>바로 해볼 것까지</span>
+              <span>정리합니다</span>
+            </h1>
           </div>
           <p>
-            여러 출처에서 같은 신호를 묶고, 개발자가 지금 확인할 일만 남깁니다.
+            <span>여러 출처에서 같은 신호를 묶고,</span>
+            <span>개발자가 지금 확인할 일만</span>
+            <span>남깁니다.</span>
           </p>
         </div>
         <div className="desk-toolbar" aria-label="브리핑 상태">

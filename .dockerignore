@@ -1,0 +1,9 @@
+.git
+.DS_Store
+node_modules
+apps/web/node_modules
+apps/web/.next
+apps/web/coverage
+apps/api/target
+apps/api/data
+*.log

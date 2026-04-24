@@ -14,11 +14,14 @@ import java.util.List;
 
 @Service
 public class IngestionService {
+    private static final int RESULT_MESSAGE_MAX_LENGTH = 1000;
+
     private final SourceRepository sourceRepository;
     private final ArticleRepository articleRepository;
     private final ContentHashService contentHashService;
     private final NewsSourceCatalog catalog;
     private final RssFeedParser rssFeedParser;
+    private final GitHubTrendingParser gitHubTrendingParser;
     private final RedisGateway redisGateway;
     private final RestClient restClient = RestClient.builder().build();
     private final boolean networkEnabled;
@@ -28,6 +31,7 @@ public class IngestionService {
                             ContentHashService contentHashService,
                             NewsSourceCatalog catalog,
                             RssFeedParser rssFeedParser,
+                            GitHubTrendingParser gitHubTrendingParser,
                             RedisGateway redisGateway,
                             @Value("${devbrief.ingestion.network-enabled:false}") boolean networkEnabled) {
         this.sourceRepository = sourceRepository;
@@ -35,6 +39,7 @@ public class IngestionService {
         this.contentHashService = contentHashService;
         this.catalog = catalog;
         this.rssFeedParser = rssFeedParser;
+        this.gitHubTrendingParser = gitHubTrendingParser;
         this.redisGateway = redisGateway;
         this.networkEnabled = networkEnabled;
     }
@@ -79,7 +84,7 @@ public class IngestionService {
                             outcome.articles().size(),
                             sourceImported,
                             outcome.fallbackUsed(),
-                            outcome.message()
+                            truncate(outcome.message(), RESULT_MESSAGE_MAX_LENGTH)
                     ));
                 } catch (Exception ex) {
                     String message = "수집 실패: " + ex.getMessage();
@@ -92,7 +97,7 @@ public class IngestionService {
                             fetchedCount,
                             sourceImported,
                             false,
-                            message
+                            truncate(message, RESULT_MESSAGE_MAX_LENGTH)
                     ));
                 }
             }
@@ -113,18 +118,29 @@ public class IngestionService {
     }
 
     private FetchOutcome fetch(Source source) {
-        if (!networkEnabled || !"RSS".equalsIgnoreCase(source.getType())) {
+        if (!networkEnabled) {
             return new FetchOutcome(
                     catalog.demoArticlesFor(source),
                     SourceFetchStatus.DEMO,
                     true,
-                    "네트워크 비활성화 또는 비RSS 출처라 데모 데이터를 사용했습니다."
+                    "네트워크 비활성화 상태라 데모 데이터를 사용했습니다."
             );
         }
         try {
             String body = restClient.get().uri(source.getUrl()).retrieve().body(String.class);
             if (body == null || body.isBlank()) {
                 return fallback(source, "응답 본문이 비어 있어 대체 데이터를 사용했습니다.");
+            }
+            if ("API".equalsIgnoreCase(source.getType()) && "GitHub Trending".equalsIgnoreCase(source.getName())) {
+                return new FetchOutcome(
+                        gitHubTrendingParser.parse(body, source.getId(), source.getCategory()),
+                        SourceFetchStatus.OK,
+                        false,
+                        "GitHub Trending 수집 성공"
+                );
+            }
+            if (!"RSS".equalsIgnoreCase(source.getType())) {
+                return fallback(source, "지원하지 않는 source 타입이라 대체 데이터를 사용했습니다.");
             }
             return new FetchOutcome(
                     rssFeedParser.parse(body, source.getId(), source.getCategory()),
@@ -133,12 +149,20 @@ public class IngestionService {
                     "RSS 수집 성공"
             );
         } catch (Exception ex) {
-            return fallback(source, "RSS 수집 실패 후 대체 데이터를 사용했습니다: " + ex.getMessage());
+            return fallback(source, fetchFailureMessage(ex));
         }
     }
 
     private FetchOutcome fallback(Source source, String message) {
         return new FetchOutcome(catalog.demoArticlesFor(source), SourceFetchStatus.FALLBACK, true, message);
+    }
+
+    static String fetchFailureMessage(Exception ex) {
+        String raw = ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage();
+        int responseBodyStart = raw.indexOf(": \"");
+        String cleaned = responseBodyStart > 0 ? raw.substring(0, responseBodyStart) : raw;
+        cleaned = cleaned.replaceAll("\\s+", " ").trim();
+        return truncate("수집 실패 후 대체 데이터를 사용했습니다: " + cleaned, RESULT_MESSAGE_MAX_LENGTH);
     }
 
     private record FetchOutcome(List<ParsedArticle> articles, SourceFetchStatus status, boolean fallbackUsed, String message) {
@@ -155,5 +179,12 @@ public class IngestionService {
     }
 
     public record IngestionResult(int sourcesChecked, int articlesImported, List<String> failedSources, List<SourceResult> sourceResults) {
+    }
+
+    private static String truncate(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, maxLength);
     }
 }

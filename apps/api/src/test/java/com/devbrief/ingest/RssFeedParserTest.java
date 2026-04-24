@@ -2,7 +2,9 @@ package com.devbrief.ingest;
 
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -36,5 +38,18 @@ class RssFeedParserTest {
         assertThat(articles.getFirst().publishedAt()).isEqualTo(Instant.parse("2026-04-24T10:00:00Z"));
         assertThat(articles.getFirst().excerpt()).hasSizeLessThanOrEqualTo(180);
     }
-}
 
+    @Test
+    void parsesRealisticRssFixture() throws Exception {
+        String xml = new String(Objects.requireNonNull(getClass().getResourceAsStream("/fixtures/hacker-news.rss.xml")).readAllBytes(), StandardCharsets.UTF_8);
+
+        RssFeedParser parser = new RssFeedParser();
+
+        var articles = parser.parse(xml, 99L, "Developer Tools");
+
+        assertThat(articles).hasSize(1);
+        assertThat(articles.getFirst().title()).contains("Agent trace replay");
+        assertThat(articles.getFirst().url()).isEqualTo("https://news.ycombinator.com/item?id=123");
+        assertThat(articles.getFirst().excerpt()).doesNotContain("<p>");
+    }
+}

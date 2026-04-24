@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: devbrief-api
+    runtime: docker
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    plan: starter
+    healthCheckPath: /api/briefings/today
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: devbrief-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: devbrief-redis
+          property: connectionString
+      - key: DEVBRIEF_NETWORK_ENABLED
+        value: "true"
+      - key: DEVBRIEF_SEED_ON_STARTUP
+        value: "true"
+      - key: DEVBRIEF_FRONTEND_ORIGIN
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: DEVBRIEF_OPENAI_MODEL
+        value: gpt-4o-mini
+
+  - type: keyvalue
+    name: devbrief-redis
+    plan: free
+    ipAllowList: []
+
+databases:
+  - name: devbrief-postgres
+    databaseName: devbrief
+    user: devbrief
+    plan: basic-256mb
+    ipAllowList: []

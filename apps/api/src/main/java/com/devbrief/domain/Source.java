@@ -7,6 +7,8 @@ import java.time.Instant;
 @Entity
 @Table(name = "sources")
 public class Source {
+    private static final int FETCH_MESSAGE_MAX_LENGTH = 1000;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -59,7 +61,7 @@ public class Source {
 
     public void markFetchResult(SourceFetchStatus status, String message, int articleCount, boolean usedFallback, Instant fetchedAt) {
         this.lastFetchStatus = status;
-        this.lastFetchMessage = message;
+        this.lastFetchMessage = truncate(message, FETCH_MESSAGE_MAX_LENGTH);
         this.lastArticleCount = articleCount;
         this.lastUsedFallback = usedFallback;
         this.lastFetchedAt = fetchedAt;
@@ -107,5 +109,12 @@ public class Source {
 
     public boolean isLastUsedFallback() {
         return Boolean.TRUE.equals(lastUsedFallback);
+    }
+
+    private static String truncate(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, maxLength);
     }
 }

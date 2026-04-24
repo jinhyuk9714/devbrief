@@ -110,6 +110,11 @@ button {
   gap: 32px;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
   margin-bottom: 24px;
+  min-width: 0;
+}
+
+.desk-heading > div {
+  min-width: 0;
 }
 
 .eyebrow {
@@ -126,8 +131,16 @@ button {
   line-height: 1.04;
   margin: 0;
   max-width: 900px;
-  overflow-wrap: break-word;
-  word-break: keep-all;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.desk-heading h1 span {
+  display: inline;
+}
+
+.desk-heading > p span {
+  display: inline;
 }
 
 .desk-heading p,
@@ -141,6 +154,8 @@ button {
 .timeline p {
   color: var(--muted);
   line-height: 1.62;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .desk-heading > p {
@@ -224,8 +239,8 @@ button {
   font-size: 30px;
   line-height: 1.16;
   margin: 12px 0 18px;
-  overflow-wrap: break-word;
-  word-break: keep-all;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .briefing-fields {
@@ -485,8 +500,8 @@ button {
 
 .trend-title span {
   line-height: 1.35;
-  overflow-wrap: break-word;
-  word-break: keep-all;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .trend-title strong {
@@ -630,7 +645,8 @@ button {
 
 .source-link strong {
   line-height: 1.35;
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .timeline {
@@ -652,7 +668,8 @@ button {
 
 .timeline p {
   margin: 6px 0 0;
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .admin-panel {
@@ -849,8 +866,34 @@ button {
   .desk-heading h1,
   .detail-header h1,
   .page-heading h1 {
-    font-size: 38px;
+    font-size: 34px;
     line-height: 1.08;
+    overflow-wrap: anywhere;
+    word-break: break-all;
+  }
+
+  .desk-heading h1 span {
+    display: block;
+  }
+
+  .desk-heading > p span {
+    display: block;
+  }
+
+  .desk-heading p,
+  .section-heading p,
+  .detail-summary p,
+  .detail-main p,
+  .briefing-main p,
+  .briefing-main li,
+  .check-list li,
+  .risk-list li,
+  .timeline p,
+  .briefing-main h2,
+  .queue-title,
+  .trend-card h2 {
+    overflow-wrap: anywhere;
+    word-break: break-all;
   }
 
   .desk-toolbar span {
@@ -937,7 +980,16 @@ button {
   .desk-heading h1,
   .detail-header h1,
   .page-heading h1 {
-    font-size: 34px;
+    font-size: 32px;
+    overflow-wrap: anywhere;
+    word-break: break-all;
+  }
+
+  .briefing-main h2,
+  .queue-title,
+  .trend-card h2 {
+    overflow-wrap: anywhere;
+    word-break: break-all;
   }
 
   .lead-briefing,

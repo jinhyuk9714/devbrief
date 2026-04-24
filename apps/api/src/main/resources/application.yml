@@ -19,5 +19,9 @@ devbrief:
   frontend-origin: ${DEVBRIEF_FRONTEND_ORIGIN:http://localhost:3000,http://127.0.0.1:3000}
   ingestion:
     network-enabled: ${DEVBRIEF_NETWORK_ENABLED:false}
+  openai:
+    api-key: ${OPENAI_API_KEY:}
+    base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
+    model: ${DEVBRIEF_OPENAI_MODEL:gpt-4o-mini}
   demo:
     seed-on-startup: ${DEVBRIEF_SEED_ON_STARTUP:true}
