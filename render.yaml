@@ -20,6 +20,12 @@ services:
         value: "true"
       - key: DEVBRIEF_SEED_ON_STARTUP
         value: "true"
+      - key: DEVBRIEF_SCHEDULER_ENABLED
+        value: "true"
+      - key: DEVBRIEF_SCHEDULER_CRON
+        value: "0 0 8,18 * * *"
+      - key: DEVBRIEF_SCHEDULER_ZONE
+        value: Asia/Seoul
       - key: DEVBRIEF_FRONTEND_ORIGIN
         sync: false
       - key: DEVBRIEF_ADMIN_TOKEN

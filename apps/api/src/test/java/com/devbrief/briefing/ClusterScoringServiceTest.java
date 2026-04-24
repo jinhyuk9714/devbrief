@@ -30,5 +30,28 @@ class ClusterScoringServiceTest {
         assertThat(clusters.getFirst().getArticleCount()).isEqualTo(2);
         assertThat(clusters.getFirst().getScore()).isGreaterThan(70);
     }
-}
 
+    @Test
+    void groupsByTitleSimilarityWithoutOverGroupingGenericAgentMentions() {
+        Source source = Source.create("Hacker News", "RSS", "https://news.ycombinator.com/rss", "Developer Tools");
+        Article firstTrace = Article.create(source, "Browser automation trace replay improves debugging", "https://example.com/trace-1", "HN",
+                Instant.parse("2026-04-24T08:00:00Z"), "Trace replay helps developers reproduce browser failures in CI.", "trace-1");
+        Article secondTrace = Article.create(source, "Trace replay shortens browser debugging loops", "https://example.com/trace-2", "HN",
+                Instant.parse("2026-04-24T09:00:00Z"), "Browser automation tools use traces to explain failures.", "trace-2");
+        Article unrelatedAgent = Article.create(source, "Agent runtime adds billing controls", "https://example.com/runtime", "HN",
+                Instant.parse("2026-04-24T10:00:00Z"), "A hosted agent runtime changes spend management for teams.", "runtime");
+
+        ClusterScoringService service = new ClusterScoringService();
+
+        var clusters = service.cluster(List.of(firstTrace, secondTrace, unrelatedAgent));
+
+        assertThat(clusters).anySatisfy(cluster -> {
+            assertThat(cluster.getTitle()).contains("trace");
+            assertThat(cluster.getArticleCount()).isEqualTo(2);
+        });
+        assertThat(clusters).anySatisfy(cluster -> {
+            assertThat(cluster.getTitle()).contains("Agent runtime");
+            assertThat(cluster.getArticleCount()).isEqualTo(1);
+        });
+    }
+}

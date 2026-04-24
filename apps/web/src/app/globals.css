@@ -828,6 +828,11 @@ button {
   margin-top: 4px;
 }
 
+.source-row .source-message {
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
 .source-badge {
   border: 1px solid var(--line);
   color: var(--ink);

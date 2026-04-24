@@ -41,11 +41,42 @@ flowchart LR
 
 핵심 운영 흐름은 `RSS/API 수집 -> 중복 제거 -> 시그널 기반 그룹핑 -> 요약 생성 -> Redis 캐시/상태 표시`입니다. `/admin`에서 source별 `정상`, `데모`, `대체 데이터`, `실패` 상태와 가져온 기사 수를 확인할 수 있습니다. Redis가 연결된 환경에서는 수집 job을 distributed gate로 보호하고, Redis가 없거나 장애일 때는 local lock fallback으로 데모가 계속 동작합니다.
 
+## Problem and Design
+
+개발자는 AI 모델, 오픈소스, 보안, 클라우드, 개발 도구 뉴스를 매일 많이 마주치지만, 실제로 필요한 것은 기사 목록이 아니라 “내가 오늘 무엇을 이해하고 무엇을 시험해볼지”입니다. DevBrief는 이 문제를 뉴스 큐레이션이 아니라 수집 파이프라인 문제로 보고 설계했습니다.
+
+- 여러 source를 주기적으로 수집하고 source별 성공, 실패, fallback 상태를 남깁니다.
+- URL/content hash로 중복을 줄인 뒤 제목과 excerpt의 신호를 기준으로 휴리스틱 그룹핑을 수행합니다.
+- 그룹별 점수는 기사 수, 최신성, 개발자에게 의미 있는 키워드를 함께 반영합니다.
+- OpenAI 키가 있으면 한국어 브리핑을 생성하고, 없거나 실패하면 기사 제목, source, excerpt를 섞은 deterministic fallback으로 데모가 깨지지 않게 합니다.
+- `/admin`은 포트폴리오 설명 페이지가 아니라 실제 운영 화면처럼 수집 실행, 브리핑 생성, source 상태, Redis 상태를 보여줍니다.
+
+## Failure Handling
+
+공개 데모는 외부 RSS, GitHub HTML, OpenAI API, Redis 같은 의존성이 흔들려도 최소한의 사용 경험이 유지되도록 만들었습니다.
+
+- 네트워크가 꺼져 있으면 source status를 `데모`로 표시하고 seed/demo article을 사용합니다.
+- 네트워크 요청이나 RSS/GitHub 파싱이 실패하면 `대체 데이터`로 표시하고 실패 메시지를 source별로 남깁니다.
+- 원본 응답에서 기사 0개가 나오면 “0개 수집” 메시지와 fallback 여부가 관리자 화면에 보입니다.
+- Redis가 있으면 scheduled/manual ingestion을 distributed gate로 보호하고, Redis가 없거나 장애면 local lock으로 중복 실행만 막습니다.
+- `DEVBRIEF_ADMIN_TOKEN`이 설정된 환경에서는 수집/생성 mutation endpoint가 `X-Admin-Token` 없이는 실행되지 않습니다.
+
+## What I Learned
+
+- 외부 데이터 수집 프로젝트는 성공 케이스보다 실패 상태를 얼마나 투명하게 보여주는지가 신뢰도를 좌우합니다.
+- “AI 클러스터링”처럼 과한 표현보다, 현재 구현 수준을 “시그널 기반 휴리스틱 그룹핑/점수화”로 정확히 말하는 편이 면접에서 더 방어 가능합니다.
+- fallback은 단순 mock이면 티가 납니다. source 이름, 원문 제목, excerpt 일부를 섞어야 데모 안정성과 브리핑 품질을 함께 챙길 수 있습니다.
+- 포트폴리오 UI도 백엔드 구조를 설명하기보다, 사용자가 매일 열어볼 수 있는 제품 흐름이 먼저 보여야 합니다.
+
 ## Screenshots
 
 ![DevBrief home briefing desk](docs/screenshots/home.png)
 
 ![DevBrief admin source status](docs/screenshots/admin.png)
+
+## Portfolio Interview Notes
+
+면접용 1분 설명, 3분 설명, 예상 질문 답변은 [docs/interview-notes.md](docs/interview-notes.md)에 정리했습니다.
 
 ## Project Structure
 
@@ -143,6 +174,9 @@ API defaults:
 - `DEVBRIEF_REDIS_HOST=localhost`
 - `DEVBRIEF_REDIS_PORT=6379`
 - `DEVBRIEF_NETWORK_ENABLED=false`
+- `DEVBRIEF_SCHEDULER_ENABLED=true`
+- `DEVBRIEF_SCHEDULER_CRON=0 0 8,18 * * *`
+- `DEVBRIEF_SCHEDULER_ZONE=Asia/Seoul`
 - `DEVBRIEF_SEED_ON_STARTUP=true`
 - `DEVBRIEF_ADMIN_TOKEN=` optional; if set, admin mutation endpoints require `X-Admin-Token`
 - `OPENAI_API_KEY=` optional; empty uses deterministic fallback

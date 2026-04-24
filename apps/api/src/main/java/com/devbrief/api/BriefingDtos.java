@@ -36,8 +36,8 @@ public final class BriefingDtos {
                     briefing.getReadingMinutes(),
                     (int) cluster.getArticles().stream().map(article -> article.getSource().getName()).distinct().count(),
                     displayText.summary(cluster.getTitle(), cluster.getCategory(), cluster.getArticles(), briefing.getSummary()),
-                    displayText.whyItMatters(cluster.getCategory(), briefing.getWhyItMatters()),
-                    briefing.getActionItems()
+                    displayText.whyItMatters(cluster.getCategory(), cluster.getArticles(), briefing.getWhyItMatters()),
+                    displayText.actionItems(cluster.getCategory(), cluster.getArticles(), briefing.getActionItems())
             );
         }
     }
@@ -69,9 +69,9 @@ public final class BriefingDtos {
                     cluster.getScore(),
                     briefing.getReadingMinutes(),
                     displayText.summary(cluster.getTitle(), cluster.getCategory(), cluster.getArticles(), briefing.getSummary()),
-                    displayText.whyItMatters(cluster.getCategory(), briefing.getWhyItMatters()),
+                    displayText.whyItMatters(cluster.getCategory(), cluster.getArticles(), briefing.getWhyItMatters()),
                     displayText.keyPoints(cluster.getArticles(), briefing.getKeyPoints()),
-                    briefing.getActionItems(),
+                    displayText.actionItems(cluster.getCategory(), cluster.getArticles(), briefing.getActionItems()),
                     briefing.getRiskNotes(),
                     sources,
                     timeline

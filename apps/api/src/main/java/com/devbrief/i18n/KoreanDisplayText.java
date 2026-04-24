@@ -63,17 +63,20 @@ public class KoreanDisplayText {
     }
 
     public String whyItMatters(String category, String storedWhyItMatters) {
-        if (storedWhyItMatters != null && !storedWhyItMatters.contains(category)) {
+        return whyItMatters(category, List.of(), storedWhyItMatters);
+    }
+
+    public String whyItMatters(String category, List<Article> articles, String storedWhyItMatters) {
+        if (shouldUseStoredWhy(category, storedWhyItMatters)) {
             return storedWhyItMatters;
         }
-        return switch (category) {
-            case "AI Models" -> "AI 모델 흐름은 모델 선택, 컨텍스트 설계, 에이전트 검증 방식에 바로 영향을 줍니다.";
-            case "Open Source" -> "오픈소스 흐름은 팀이 표준 도구 계층과 운영 가능한 실험 범위를 다시 정하는 신호입니다.";
-            case "Developer Tools" -> "개발 도구 흐름은 테스트, 디버깅, 배포 전 검증 루프를 더 짧게 만들 수 있습니다.";
-            case "Security" -> "보안 흐름은 AI가 만든 코드와 자동화된 워크플로의 위험을 더 이른 단계에서 줄이는 데 중요합니다.";
-            case "Cloud" -> "클라우드 흐름은 작은 팀도 인프라 복잡도를 낮추면서 AI 기능을 운영에 올릴 기회를 줍니다.";
-            default -> "%s 흐름은 개발자가 도구 선택과 실험 우선순위를 조정해야 하는 신호입니다.".formatted(category(category));
-        };
+        String base = whyBody(category);
+        if (articles.isEmpty()) {
+            return base;
+        }
+        Article lead = articles.get(0);
+        return "%s 특히 %s의 '%s' 신호는 이 흐름이 실제 도구 선택이나 워크플로 변화로 이어지는지 확인하게 합니다."
+                .formatted(base, lead.getSource().getName(), lead.getTitle());
     }
 
     public List<String> keyPoints(List<Article> articles, List<String> storedKeyPoints) {
@@ -88,6 +91,31 @@ public class KoreanDisplayText {
     }
 
     public List<String> actionItems(String category) {
+        return baseActionItems(category);
+    }
+
+    public List<String> actionItems(String category, List<Article> articles) {
+        return actionItems(category, articles, List.of());
+    }
+
+    public List<String> actionItems(String category, List<Article> articles, List<String> storedActionItems) {
+        List<String> base = baseActionItems(category);
+        if (storedActionItems != null && !storedActionItems.isEmpty() && !storedActionItems.equals(base)) {
+            return storedActionItems;
+        }
+        if (articles.isEmpty()) {
+            return base;
+        }
+        Article lead = articles.get(0);
+        return List.of(
+                "%s의 '%s' 원문을 열어 현재 스택 영향과 재현 가능성을 표시하기"
+                        .formatted(lead.getSource().getName(), lead.getTitle()),
+                base.get(1),
+                base.get(2)
+        );
+    }
+
+    private List<String> baseActionItems(String category) {
         return switch (category) {
             case "AI Models" -> List.of(
                     "현재 에이전트 워크플로에서 컨텍스트 회수 기준을 명시하기",
@@ -130,6 +158,17 @@ public class KoreanDisplayText {
         };
     }
 
+    private String whyBody(String category) {
+        return switch (category) {
+            case "AI Models" -> "AI 모델 흐름은 모델 선택, 컨텍스트 설계, 에이전트 검증 방식에 바로 영향을 줍니다.";
+            case "Open Source" -> "오픈소스 흐름은 팀이 표준 도구 계층과 운영 가능한 실험 범위를 다시 정하는 신호입니다.";
+            case "Developer Tools" -> "개발 도구 흐름은 테스트, 디버깅, 배포 전 검증 루프를 더 짧게 만들 수 있습니다.";
+            case "Security" -> "보안 흐름은 AI가 만든 코드와 자동화된 워크플로의 위험을 더 이른 단계에서 줄이는 데 중요합니다.";
+            case "Cloud" -> "클라우드 흐름은 작은 팀도 인프라 복잡도를 낮추면서 AI 기능을 운영에 올릴 기회를 줍니다.";
+            default -> "%s 흐름은 개발자가 도구 선택과 실험 우선순위를 조정해야 하는 신호입니다.".formatted(category(category));
+        };
+    }
+
     private String articleSpecificSummaryBody(String category, Article article) {
         String categoryBody = summaryBody(category);
         String excerpt = article.getExcerpt();
@@ -146,5 +185,18 @@ public class KoreanDisplayText {
 
     private boolean looksLikeGenericKoreanFallback(String title, String category, String storedSummary) {
         return storedSummary.equals("%s: %s".formatted(briefingTitle(title), summaryBody(category)));
+    }
+
+    private boolean shouldUseStoredWhy(String category, String storedWhyItMatters) {
+        if (storedWhyItMatters == null || storedWhyItMatters.isBlank()) {
+            return false;
+        }
+        if (storedWhyItMatters.equals(whyBody(category))) {
+            return false;
+        }
+        if (storedWhyItMatters.contains("practical implications for developer teams")) {
+            return false;
+        }
+        return true;
     }
 }

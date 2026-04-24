@@ -50,8 +50,12 @@ public class OpenAiResponsesClient implements OpenAiBriefingClient {
                                 "role", "system",
                                 "content", """
                                         AI/개발 뉴스 브리핑 편집자입니다. 반드시 한국어 JSON만 반환하세요.
-                                        JSON 필드: summary, whyItMatters, keyPoints, actionItems, riskNotes.
-                                        원문 제목과 출처를 근거로 무슨 일인지, 왜 중요한지, 개발자가 해볼 일을 분리하세요.
+                                        Markdown이나 설명 문장 없이 JSON object 하나만 반환하세요.
+                                        필수 필드: summary, whyItMatters, keyPoints, actionItems, riskNotes.
+                                        keyPoints와 actionItems는 각각 2-4개, riskNotes는 1-3개를 작성하세요.
+                                        summary는 무슨 일인지, whyItMatters는 왜 중요한지, actionItems는 개발자가 바로 해볼 일을 분리하세요.
+                                        원문 출처와 제목을 근거로 쓰고, source 이름과 원문 제목은 번역하지 마세요.
+                                        원문 전문을 재게시하지 말고 짧은 신호와 판단만 요약하세요.
                                         """
                         ),
                         Map.of("role", "user", "content", prompt(request))
@@ -88,9 +92,9 @@ public class OpenAiResponsesClient implements OpenAiBriefingClient {
         return new GeneratedBriefing(
                 requiredText(briefing, "summary"),
                 requiredText(briefing, "whyItMatters"),
-                textArray(briefing, "keyPoints"),
-                textArray(briefing, "actionItems"),
-                textArray(briefing, "riskNotes")
+                textArray(briefing, "keyPoints", 2),
+                textArray(briefing, "actionItems", 2),
+                textArray(briefing, "riskNotes", 1)
         );
     }
 
@@ -113,15 +117,16 @@ public class OpenAiResponsesClient implements OpenAiBriefingClient {
         return value;
     }
 
-    private static List<String> textArray(JsonNode node, String field) {
+    private static List<String> textArray(JsonNode node, String field, int minSize) {
         List<String> values = new ArrayList<>();
         for (JsonNode item : node.path(field)) {
-            if (item.isTextual() && !item.asText().isBlank()) {
-                values.add(item.asText());
+            String value = item.isTextual() ? item.asText().trim() : "";
+            if (!value.isBlank()) {
+                values.add(value);
             }
         }
-        if (values.isEmpty()) {
-            throw new IllegalArgumentException(field + " 목록이 비어 있습니다.");
+        if (values.size() < minSize) {
+            throw new IllegalArgumentException(field + " 목록은 최소 %d개 필요합니다.".formatted(minSize));
         }
         return values;
     }

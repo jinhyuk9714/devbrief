@@ -16,5 +16,7 @@ spring:
 devbrief:
   ingestion:
     network-enabled: false
+  scheduler:
+    enabled: false
   demo:
     seed-on-startup: false

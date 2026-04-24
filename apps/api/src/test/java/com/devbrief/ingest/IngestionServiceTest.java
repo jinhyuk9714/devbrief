@@ -4,6 +4,8 @@ import com.devbrief.domain.*;
 import com.devbrief.ops.RedisGateway;
 import org.junit.jupiter.api.Test;
 
+import com.sun.net.httpserver.HttpServer;
+import java.net.InetSocketAddress;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -218,5 +220,68 @@ class IngestionServiceTest {
         assertThat(result.articlesImported()).isEqualTo(1);
         verify(articleRepository).save(any(Article.class));
         verify(redisGateway, never()).release("devbrief:ingest:lock");
+    }
+
+    @Test
+    void recordsSpecificFallbackMessagesForParsingFailureAndEmptyFeeds() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/broken.xml", exchange -> {
+            byte[] body = "<not-rss>".getBytes();
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.createContext("/empty.xml", exchange -> {
+            byte[] body = """
+                    <?xml version="1.0" encoding="UTF-8" ?>
+                    <rss version="2.0"><channel><title>Empty</title></channel></rss>
+                    """.getBytes();
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.start();
+        try {
+            Source broken = Source.create("Broken Feed", "RSS", "http://127.0.0.1:%d/broken.xml".formatted(server.getAddress().getPort()), "Developer Tools");
+            Source empty = Source.create("Empty Feed", "RSS", "http://127.0.0.1:%d/empty.xml".formatted(server.getAddress().getPort()), "AI Models");
+            SourceRepository sourceRepository = mock(SourceRepository.class);
+            ArticleRepository articleRepository = mock(ArticleRepository.class);
+            RedisGateway redisGateway = mock(RedisGateway.class);
+            NewsSourceCatalog catalog = mock(NewsSourceCatalog.class);
+
+            when(sourceRepository.findByEnabledTrueOrderByNameAsc()).thenReturn(List.of(broken, empty));
+            when(catalog.defaults()).thenReturn(List.of());
+            when(catalog.demoArticlesFor(any())).thenReturn(List.of(new ParsedArticle(
+                    null,
+                    "Developer Tools",
+                    "Fallback article",
+                    "https://example.com/fallback",
+                    "Demo",
+                    Instant.parse("2026-04-24T09:00:00Z"),
+                    "Demo fallback article."
+            )));
+            when(articleRepository.existsByContentHash(any())).thenReturn(false);
+
+            IngestionService service = new IngestionService(
+                    sourceRepository,
+                    articleRepository,
+                    new ContentHashService(),
+                    catalog,
+                    new RssFeedParser(),
+                    new GitHubTrendingParser(),
+                    redisGateway,
+                    true
+            );
+
+            IngestionService.IngestionResult result = service.run();
+
+            assertThat(result.sourceResults()).extracting(IngestionService.SourceResult::message)
+                    .anySatisfy(message -> assertThat(message).contains("RSS 파싱 실패 후 대체 데이터를 사용했습니다"))
+                    .anySatisfy(message -> assertThat(message).contains("원본 응답에서 새 기사 0개를 수집해 대체 데이터를 사용했습니다"));
+            assertThat(result.sourceResults()).extracting(IngestionService.SourceResult::status)
+                    .containsOnly(SourceFetchStatus.FALLBACK);
+        } finally {
+            server.stop(0);
+        }
     }
 }

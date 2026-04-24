@@ -65,5 +65,8 @@ describe("SourceStatus", () => {
     expect(screen.getByText("실패")).toBeInTheDocument();
     expect(screen.getByText("4개")).toBeInTheDocument();
     expect(screen.getAllByText("대체 사용").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("RSS 수집 성공")).toBeInTheDocument();
+    expect(screen.getByText("네트워크 비활성화로 데모 데이터를 사용했습니다.")).toBeInTheDocument();
+    expect(screen.getByText("가져올 수 있는 기사가 없습니다.")).toBeInTheDocument();
   });
 });

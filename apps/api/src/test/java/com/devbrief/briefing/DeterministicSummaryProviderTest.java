@@ -50,4 +50,19 @@ class DeterministicSummaryProviderTest {
         assertThat(second.summary()).contains("Google Developers", "Small Gemini models improve browser automation");
         assertThat(first.summary()).isNotEqualTo(second.summary());
     }
+
+    @Test
+    void usesArticleSignalsInWhyAndActionItems() {
+        Source source = Source.create("GitHub Trending", "API", "https://github.com/trending", "Open Source");
+        Article article = Article.create(source, "Vector cache library adds provenance checks", "https://example.com/vector", "GitHub",
+                Instant.parse("2026-04-24T08:00:00Z"), "The library links cache entries to source repositories and freshness metadata.", "hash-4");
+        TopicCluster cluster = TopicCluster.create("Vector cache provenance", "Open Source", 88, List.of(article));
+
+        SummaryProvider provider = new DeterministicSummaryProvider();
+
+        GeneratedBriefing generated = provider.generate(cluster, cluster.getArticles());
+
+        assertThat(generated.whyItMatters()).contains("GitHub Trending", "Vector cache library adds provenance checks");
+        assertThat(generated.actionItems()).anySatisfy(action -> assertThat(action).contains("Vector cache library adds provenance checks"));
+    }
 }

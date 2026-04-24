@@ -5,6 +5,7 @@ function redisLabel(value: unknown) {
   if (value === "available") return "사용 가능";
   if (value === "unavailable") return "연결 실패";
   if (value === "demo") return "데모 모드";
+  if (value === "disabled") return "비활성";
   return "알 수 없음";
 }
 
@@ -55,6 +56,7 @@ export function SourceStatus({ status }: { status: SourceStatusType }) {
             <div>
               <span>{source.name}</span>
               <small>{source.category} · {source.type}</small>
+              {source.lastFetchMessage ? <small className="source-message">{source.lastFetchMessage}</small> : null}
             </div>
             <strong className={`source-badge status-${source.lastFetchStatus?.toLowerCase() ?? "unknown"}`}>
               {sourceStatusLabel(source.lastFetchStatus)}

@@ -158,24 +158,48 @@ public class IngestionService {
                 return fallback(source, "응답 본문이 비어 있어 대체 데이터를 사용했습니다.");
             }
             if ("API".equalsIgnoreCase(source.getType()) && "GitHub Trending".equalsIgnoreCase(source.getName())) {
-                return new FetchOutcome(
-                        gitHubTrendingParser.parse(body, source.getId(), source.getCategory()),
-                        SourceFetchStatus.OK,
-                        false,
-                        "GitHub Trending 수집 성공"
-                );
+                return parseGitHubTrending(source, body);
             }
             if (!"RSS".equalsIgnoreCase(source.getType())) {
                 return fallback(source, "지원하지 않는 source 타입이라 대체 데이터를 사용했습니다.");
             }
-            return new FetchOutcome(
-                    rssFeedParser.parse(body, source.getId(), source.getCategory()),
-                    SourceFetchStatus.OK,
-                    false,
-                    "RSS 수집 성공"
-            );
+            return parseRss(source, body);
         } catch (Exception ex) {
             return fallback(source, fetchFailureMessage(ex));
+        }
+    }
+
+    private FetchOutcome parseGitHubTrending(Source source, String body) {
+        try {
+            List<ParsedArticle> articles = gitHubTrendingParser.parse(body, source.getId(), source.getCategory());
+            if (articles.isEmpty()) {
+                return fallback(source, emptyFeedMessage());
+            }
+            return new FetchOutcome(
+                    articles,
+                    SourceFetchStatus.OK,
+                    false,
+                    "GitHub Trending 수집 성공: %d개 기사 확인".formatted(articles.size())
+            );
+        } catch (Exception ex) {
+            return fallback(source, parseFailureMessage("GitHub Trending", ex));
+        }
+    }
+
+    private FetchOutcome parseRss(Source source, String body) {
+        try {
+            List<ParsedArticle> articles = rssFeedParser.parse(body, source.getId(), source.getCategory());
+            if (articles.isEmpty()) {
+                return fallback(source, emptyFeedMessage());
+            }
+            return new FetchOutcome(
+                    articles,
+                    SourceFetchStatus.OK,
+                    false,
+                    "RSS 수집 성공: %d개 기사 확인".formatted(articles.size())
+            );
+        } catch (Exception ex) {
+            return fallback(source, parseFailureMessage("RSS", ex));
         }
     }
 
@@ -184,11 +208,22 @@ public class IngestionService {
     }
 
     static String fetchFailureMessage(Exception ex) {
+        return truncate("수집 실패 후 대체 데이터를 사용했습니다: " + failureDetail(ex), RESULT_MESSAGE_MAX_LENGTH);
+    }
+
+    private static String parseFailureMessage(String parserName, Exception ex) {
+        return truncate("%s 파싱 실패 후 대체 데이터를 사용했습니다: %s".formatted(parserName, failureDetail(ex)), RESULT_MESSAGE_MAX_LENGTH);
+    }
+
+    private static String emptyFeedMessage() {
+        return "원본 응답에서 새 기사 0개를 수집해 대체 데이터를 사용했습니다.";
+    }
+
+    private static String failureDetail(Exception ex) {
         String raw = ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage();
         int responseBodyStart = raw.indexOf(": \"");
         String cleaned = responseBodyStart > 0 ? raw.substring(0, responseBodyStart) : raw;
-        cleaned = cleaned.replaceAll("\\s+", " ").trim();
-        return truncate("수집 실패 후 대체 데이터를 사용했습니다: " + cleaned, RESULT_MESSAGE_MAX_LENGTH);
+        return cleaned.replaceAll("\\s+", " ").trim();
     }
 
     private record FetchOutcome(List<ParsedArticle> articles, SourceFetchStatus status, boolean fallbackUsed, String message) {
