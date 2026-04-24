@@ -56,7 +56,7 @@ export function SourceStatus({ status }: { status: SourceStatusType }) {
             <div>
               <span>{source.name}</span>
               <small>{source.category} · {source.type}</small>
-              {source.lastFetchMessage ? <small className="source-message">{source.lastFetchMessage}</small> : null}
+              {source.lastFetchMessage ? <small className="source-message">최근 메시지 · {source.lastFetchMessage}</small> : null}
             </div>
             <strong className={`source-badge status-${source.lastFetchStatus?.toLowerCase() ?? "unknown"}`}>
               {sourceStatusLabel(source.lastFetchStatus)}

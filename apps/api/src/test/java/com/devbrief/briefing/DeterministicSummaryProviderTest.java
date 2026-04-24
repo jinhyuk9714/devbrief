@@ -63,6 +63,8 @@ class DeterministicSummaryProviderTest {
         GeneratedBriefing generated = provider.generate(cluster, cluster.getArticles());
 
         assertThat(generated.whyItMatters()).contains("GitHub Trending", "Vector cache library adds provenance checks");
+        assertThat(generated.whyItMatters()).contains("freshness metadata");
         assertThat(generated.actionItems()).anySatisfy(action -> assertThat(action).contains("Vector cache library adds provenance checks"));
+        assertThat(generated.actionItems()).anySatisfy(action -> assertThat(action).contains("freshness metadata"));
     }
 }

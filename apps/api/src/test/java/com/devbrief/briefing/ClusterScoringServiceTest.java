@@ -2,6 +2,7 @@ package com.devbrief.briefing;
 
 import com.devbrief.domain.Article;
 import com.devbrief.domain.Source;
+import com.devbrief.domain.TopicCluster;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -53,5 +54,47 @@ class ClusterScoringServiceTest {
             assertThat(cluster.getTitle()).contains("Agent runtime");
             assertThat(cluster.getArticleCount()).isEqualTo(1);
         });
+    }
+
+    @Test
+    void usesWeightedTermSimilarityForRelatedSearchStories() {
+        Source source = Source.create("Hacker News", "RSS", "https://news.ycombinator.com/rss", "Developer Tools");
+        Article first = Article.create(source, "Semantic rerank pipeline improves code search", "https://example.com/search-1", "HN",
+                Instant.parse("2026-04-24T08:00:00Z"), "Teams use hybrid search rerank signals for pull request navigation.", "search-1");
+        Article second = Article.create(source, "Code search reranking pipeline gets production tuning", "https://example.com/search-2", "HN",
+                Instant.parse("2026-04-24T09:00:00Z"), "Hybrid retrieval rerank reduces duplicate results for repositories.", "search-2");
+        Article unrelated = Article.create(source, "Runtime agent billing controls reach hosted IDEs", "https://example.com/billing", "HN",
+                Instant.parse("2026-04-24T10:00:00Z"), "Teams track agent spend limits and monthly invoices in coding environments.", "billing");
+
+        ClusterScoringService service = new ClusterScoringService();
+
+        var clusters = service.cluster(List.of(first, second, unrelated));
+
+        assertThat(clusters).anySatisfy(cluster -> {
+            assertThat(cluster.getTitle()).contains("search");
+            assertThat(cluster.getArticleCount()).isEqualTo(2);
+        });
+        assertThat(clusters).anySatisfy(cluster -> {
+            assertThat(cluster.getTitle()).contains("billing");
+            assertThat(cluster.getArticleCount()).isEqualTo(1);
+        });
+    }
+
+    @Test
+    void keepsSimilarTermsSeparateAcrossCategories() {
+        Source tools = Source.create("Hacker News", "RSS", "https://news.ycombinator.com/rss", "Developer Tools");
+        Source security = Source.create("Security Blog", "RSS", "https://example.com/security", "Security");
+        Article toolsArticle = Article.create(tools, "Code search rerank pipeline improves debugging", "https://example.com/tools", "HN",
+                Instant.parse("2026-04-24T08:00:00Z"), "Hybrid search rerank helps teams find repository failures.", "tools");
+        Article securityArticle = Article.create(security, "Code search rerank reveals secret exposure", "https://example.com/security", "Security",
+                Instant.parse("2026-04-24T09:00:00Z"), "Hybrid search rerank highlights leaked credentials in repositories.", "security");
+
+        ClusterScoringService service = new ClusterScoringService();
+
+        var clusters = service.cluster(List.of(toolsArticle, securityArticle));
+
+        assertThat(clusters).hasSize(2);
+        assertThat(clusters).extracting(TopicCluster::getCategory)
+                .containsExactlyInAnyOrder("Developer Tools", "Security");
     }
 }

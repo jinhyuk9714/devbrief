@@ -75,8 +75,8 @@ public class KoreanDisplayText {
             return base;
         }
         Article lead = articles.get(0);
-        return "%s 특히 %s의 '%s' 신호는 이 흐름이 실제 도구 선택이나 워크플로 변화로 이어지는지 확인하게 합니다."
-                .formatted(base, lead.getSource().getName(), lead.getTitle());
+        return "%s 특히 %s의 '%s' 신호는 이 흐름이 실제 도구 선택이나 워크플로 변화로 이어지는지 확인하게 합니다. 근거 단서는 \"%s\"입니다."
+                .formatted(base, lead.getSource().getName(), lead.getTitle(), excerptSignal(lead));
     }
 
     public List<String> keyPoints(List<Article> articles, List<String> storedKeyPoints) {
@@ -108,8 +108,8 @@ public class KoreanDisplayText {
         }
         Article lead = articles.get(0);
         return List.of(
-                "%s의 '%s' 원문을 열어 현재 스택 영향과 재현 가능성을 표시하기"
-                        .formatted(lead.getSource().getName(), lead.getTitle()),
+                "%s의 '%s' 원문을 열어 \"%s\" 단서가 현재 스택에 미치는 영향 표시하기"
+                        .formatted(lead.getSource().getName(), lead.getTitle(), excerptSignal(lead)),
                 base.get(1),
                 base.get(2)
         );
@@ -177,6 +177,18 @@ public class KoreanDisplayText {
         }
         return "%s 핵심 단서는 \"%s\"입니다."
                 .formatted(categoryBody, excerpt.trim());
+    }
+
+    private String excerptSignal(Article article) {
+        String excerpt = article.getExcerpt();
+        if (excerpt == null || excerpt.isBlank()) {
+            return "원문 제목과 출처";
+        }
+        String trimmed = excerpt.replaceAll("\\s+", " ").trim();
+        if (trimmed.length() <= 120) {
+            return trimmed;
+        }
+        return trimmed.substring(0, 117).trim() + "...";
     }
 
     private boolean looksLikeDeterministicEnglish(String title, String storedSummary) {
