@@ -5,6 +5,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const nextConfig = {
   outputFileTracingRoot: __dirname,
+  experimental: {
+    devtoolSegmentExplorer: false,
+  },
 };
 
 export default nextConfig;
