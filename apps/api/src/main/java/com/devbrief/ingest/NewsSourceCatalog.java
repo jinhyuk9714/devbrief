@@ -15,7 +15,7 @@ public class NewsSourceCatalog {
                 new SourceSpec("Hacker News", "RSS", "https://news.ycombinator.com/rss", "Developer Tools"),
                 new SourceSpec("arXiv AI", "RSS", "https://rss.arxiv.org/rss/cs.AI", "AI Models"),
                 new SourceSpec("OpenAI Blog", "RSS", "https://openai.com/news/rss.xml", "AI Models"),
-                new SourceSpec("Anthropic News", "RSS", "https://www.anthropic.com/news/rss.xml", "AI Models"),
+                new SourceSpec("Anthropic News", "HTML", "https://www.anthropic.com/news", "AI Models"),
                 new SourceSpec("Google Developers", "RSS", "https://developers.googleblog.com/feeds/posts/default", "Cloud"),
                 new SourceSpec("Microsoft Developer Blog", "RSS", "https://devblogs.microsoft.com/feed/", "Developer Tools"),
                 new SourceSpec("Meta Engineering", "RSS", "https://engineering.fb.com/feed/", "Open Source")
@@ -62,4 +62,3 @@ public class NewsSourceCatalog {
     public record SourceSpec(String name, String type, String url, String category) {
     }
 }
-

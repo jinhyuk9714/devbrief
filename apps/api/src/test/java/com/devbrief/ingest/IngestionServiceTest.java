@@ -182,6 +182,39 @@ class IngestionServiceTest {
     }
 
     @Test
+    void seedSourcesUpdatesCatalogMetadataWithoutResettingFetchStatus() {
+        Source existing = Source.create("Anthropic News", "RSS", "https://www.anthropic.com/news/rss.xml", "AI Models");
+        existing.markFetchResult(SourceFetchStatus.FALLBACK, "old message", 2, true, Instant.parse("2026-04-24T08:00:00Z"));
+        SourceRepository sourceRepository = mock(SourceRepository.class);
+        NewsSourceCatalog catalog = mock(NewsSourceCatalog.class);
+
+        when(catalog.defaults()).thenReturn(List.of(
+                new NewsSourceCatalog.SourceSpec("Anthropic News", "HTML", "https://www.anthropic.com/news", "AI Models")
+        ));
+        when(sourceRepository.findByName("Anthropic News")).thenReturn(java.util.Optional.of(existing));
+
+        IngestionService service = new IngestionService(
+                sourceRepository,
+                mock(ArticleRepository.class),
+                new ContentHashService(),
+                catalog,
+                mock(RssFeedParser.class),
+                new GitHubTrendingParser(),
+                mock(RedisGateway.class),
+                false
+        );
+
+        service.seedSources();
+
+        assertThat(existing.getType()).isEqualTo("HTML");
+        assertThat(existing.getUrl()).isEqualTo("https://www.anthropic.com/news");
+        assertThat(existing.getCategory()).isEqualTo("AI Models");
+        assertThat(existing.getLastFetchStatus()).isEqualTo(SourceFetchStatus.FALLBACK);
+        assertThat(existing.getLastFetchMessage()).isEqualTo("old message");
+        verify(sourceRepository, never()).save(existing);
+    }
+
+    @Test
     void continuesWithLocalLockWhenRedisIsUnavailable() {
         Source source = Source.create("Working Feed", "RSS", "https://example.com/working.xml", "AI Models");
         SourceRepository sourceRepository = mock(SourceRepository.class);
@@ -343,5 +376,69 @@ class IngestionServiceTest {
         } finally {
             server.stop(0);
         }
+    }
+
+    @Test
+    void capsNetworkSourceArticlesAndRecordsOriginalCountInMessage() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/many.xml", exchange -> {
+            byte[] body = rssWithItems(45).getBytes();
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.start();
+        try {
+            Source many = Source.create("Many Feed", "RSS", "http://127.0.0.1:%d/many.xml".formatted(server.getAddress().getPort()), "Developer Tools");
+            SourceRepository sourceRepository = mock(SourceRepository.class);
+            ArticleRepository articleRepository = mock(ArticleRepository.class);
+            RedisGateway redisGateway = mock(RedisGateway.class);
+            NewsSourceCatalog catalog = mock(NewsSourceCatalog.class);
+
+            when(sourceRepository.findByEnabledTrueOrderByNameAsc()).thenReturn(List.of(many));
+            when(catalog.defaults()).thenReturn(List.of());
+            when(articleRepository.existsByContentHash(any())).thenReturn(false);
+
+            IngestionService service = new IngestionService(
+                    sourceRepository,
+                    articleRepository,
+                    new ContentHashService(),
+                    catalog,
+                    new RssFeedParser(),
+                    new GitHubTrendingParser(),
+                    redisGateway,
+                    true
+            );
+
+            IngestionService.IngestionResult result = service.run();
+
+            assertThat(result.articlesImported()).isEqualTo(40);
+            assertThat(result.sourceResults().getFirst().fetchedCount()).isEqualTo(40);
+            assertThat(result.sourceResults().getFirst().message()).contains("원본 45개 중 최신 40개 사용");
+            assertThat(many.getLastArticleCount()).isEqualTo(40);
+            verify(articleRepository, times(40)).save(any(Article.class));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    private static String rssWithItems(int count) {
+        StringBuilder builder = new StringBuilder("""
+                <?xml version="1.0" encoding="UTF-8" ?>
+                <rss version="2.0"><channel><title>Many</title>
+                """);
+        for (int index = 0; index < count; index++) {
+            builder.append("""
+                    <item>
+                      <title>Developer tool update %d</title>
+                      <link>https://example.com/%d</link>
+                      <author>Many Feed</author>
+                      <pubDate>Fri, 24 Apr 2026 09:%02d:00 GMT</pubDate>
+                      <description>Item %d explains a developer workflow signal.</description>
+                    </item>
+                    """.formatted(index, index, index % 60, index));
+        }
+        builder.append("</channel></rss>");
+        return builder.toString();
     }
 }

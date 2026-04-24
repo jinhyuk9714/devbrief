@@ -67,6 +67,12 @@ public class Source {
         this.lastFetchedAt = fetchedAt;
     }
 
+    public void syncCatalogMetadata(String type, String url, String category) {
+        this.type = type;
+        this.url = url;
+        this.category = category;
+    }
+
     public Long getId() {
         return id;
     }

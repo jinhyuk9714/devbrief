@@ -67,4 +67,20 @@ class DeterministicSummaryProviderTest {
         assertThat(generated.actionItems()).anySatisfy(action -> assertThat(action).contains("Vector cache library adds provenance checks"));
         assertThat(generated.actionItems()).anySatisfy(action -> assertThat(action).contains("freshness metadata"));
     }
+
+    @Test
+    void representativeFallbacksKeepLeadArticleEvidence() {
+        SummaryProvider provider = new DeterministicSummaryProvider();
+
+        for (TopicCluster cluster : BriefingQualityFixtures.representativeClusters()) {
+            Article lead = cluster.getArticles().getFirst();
+            GeneratedBriefing generated = provider.generate(cluster, cluster.getArticles());
+
+            assertThat(generated.summary()).contains(lead.getSource().getName(), lead.getTitle());
+            assertThat(generated.summary()).contains(lead.getExcerpt());
+            assertThat(generated.whyItMatters()).contains(lead.getSource().getName(), lead.getTitle());
+            assertThat(generated.whyItMatters()).contains(lead.getExcerpt());
+            assertThat(generated.actionItems()).anySatisfy(action -> assertThat(action).contains(lead.getExcerpt()));
+        }
+    }
 }

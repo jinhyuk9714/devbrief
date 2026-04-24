@@ -2,14 +2,16 @@
 
 ## Flow
 
-1. `IngestionService` ensures the default source catalog exists.
-2. Each enabled source is fetched from RSS/API when network mode is enabled; otherwise deterministic demo articles are used.
+1. `IngestionService` ensures the default source catalog exists and updates URL/type/category when the catalog changes.
+2. Each enabled source is fetched from RSS/API/HTML when network mode is enabled; otherwise deterministic demo articles are used.
 3. `ContentHashService` removes common URL tracking noise and deduplicates articles.
-4. `ClusterScoringService` groups articles by developer signal and ranks them by freshness, volume, and keyword strength.
-5. `OpenAiSummaryProvider` generates Korean briefings with the OpenAI Responses API when `OPENAI_API_KEY` is present.
-6. `DeterministicSummaryProvider` remains the fallback path when the key is missing or an LLM request fails.
-7. `RedisGateway` provides a lightweight ingestion lock and cache status surface.
-8. Next.js reads the public API and falls back to local demo data when the API is not running.
+4. Each source contributes at most the latest 40 parsed articles so one noisy source does not dominate briefing candidates.
+5. `ClusterScoringService` groups articles by anchor signals plus BM25/IDF token similarity and ranks them by freshness, volume, and keyword strength.
+6. `OpenAiSummaryProvider` generates Korean briefings with the OpenAI Responses API when `OPENAI_API_KEY` is present.
+7. `BriefingQualityValidator` rejects generic, English-only, non-actionable, or source/title-translating responses.
+8. `DeterministicSummaryProvider` remains the fallback path when the key is missing or an LLM request fails validation.
+9. `RedisGateway` provides a lightweight ingestion lock and cache status surface.
+10. Next.js reads the public API and falls back to local demo data when the API is not running.
 
 ## Portfolio Emphasis
 

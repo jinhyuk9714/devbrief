@@ -4,7 +4,7 @@ DevBrief는 AI/개발 뉴스를 개발자 액션까지 정리해주는 한국어
 
 ## What I Built
 
-DevBrief는 개발자에게 중요한 AI/개발 뉴스 신호를 골라 액션 가능한 브리핑으로 바꾸는 시스템입니다. RSS, GitHub Trending, 기술 블로그에서 수집한 기사를 URL/content hash로 중복 제거하고, anchor + BM25/IDF 가중 유사도 기반 휴리스틱 그룹핑과 점수화를 거쳐 한국어 요약, 중요도, 개발자 액션 아이템, 원문 출처를 제공합니다.
+DevBrief는 개발자에게 중요한 AI/개발 뉴스 신호를 골라 액션 가능한 브리핑으로 바꾸는 시스템입니다. RSS, GitHub Trending, Anthropic 뉴스룸 HTML, 기술 블로그에서 수집한 기사를 URL/content hash로 중복 제거하고, anchor + BM25/IDF 가중 유사도 기반 휴리스틱 그룹핑과 점수화를 거쳐 한국어 요약, 중요도, 개발자 액션 아이템, 원문 출처를 제공합니다.
 
 Live demo:
 
@@ -46,6 +46,8 @@ flowchart LR
 개발자는 AI 모델, 오픈소스, 보안, 클라우드, 개발 도구 뉴스를 매일 많이 마주치지만, 실제로 필요한 것은 기사 목록이 아니라 “내가 오늘 무엇을 이해하고 무엇을 시험해볼지”입니다. DevBrief는 이 문제를 뉴스 큐레이션이 아니라 수집 파이프라인 문제로 보고 설계했습니다.
 
 - 여러 source를 주기적으로 수집하고 source별 성공, 실패, fallback 상태를 남깁니다.
+- RSS뿐 아니라 GitHub Trending HTML과 Anthropic 뉴스룸 HTML도 parser fixture로 검증합니다.
+- source별 원본 응답은 최신 40개 기사까지만 사용해 한 source가 브리핑 후보를 과하게 지배하지 않게 합니다.
 - URL/content hash로 중복을 줄인 뒤 제목과 excerpt의 anchor 신호, token overlap, BM25/IDF 가중 유사도를 함께 사용해 휴리스틱 그룹핑을 수행합니다.
 - 그룹별 점수는 기사 수, 최신성, 개발자에게 의미 있는 키워드를 함께 반영합니다.
 - OpenAI 키가 있으면 품질 강화 프롬프트와 응답 검증을 거쳐 한국어 브리핑을 생성하고, 없거나 실패하면 기사 제목, source, excerpt를 섞은 deterministic fallback으로 데모가 깨지지 않게 합니다.
@@ -66,6 +68,7 @@ flowchart LR
 - 외부 데이터 수집 프로젝트는 성공 케이스보다 실패 상태를 얼마나 투명하게 보여주는지가 신뢰도를 좌우합니다.
 - “AI 클러스터링”처럼 과한 표현보다, 현재 구현 수준을 “anchor + BM25/IDF 기반 휴리스틱 그룹핑/점수화”로 정확히 말하는 편이 면접에서 더 방어 가능합니다.
 - fallback은 단순 mock이면 티가 납니다. source 이름, 원문 제목, excerpt 일부를 섞어야 데모 안정성과 브리핑 품질을 함께 챙길 수 있습니다.
+- LLM 출력 품질은 감으로만 볼 수 없어서, 대표 기사 묶음 fixture로 한국어 여부, 원문 근거, 액션 구체성을 회귀 테스트합니다.
 - 포트폴리오 UI도 백엔드 구조를 설명하기보다, 사용자가 매일 열어볼 수 있는 제품 흐름이 먼저 보여야 합니다.
 
 ## Screenshots
@@ -77,6 +80,8 @@ flowchart LR
 ## Portfolio Interview Notes
 
 면접용 1분 설명, 3분 설명, 예상 질문 답변은 [docs/interview-notes.md](docs/interview-notes.md)에 정리했습니다.
+
+시연 순서는 [docs/demo-script.md](docs/demo-script.md)에 정리했습니다.
 
 ## Project Structure
 
@@ -146,7 +151,7 @@ Deployment steps:
 2. Create the Render Blueprint from `render.yaml`.
 3. In Render, set `DEVBRIEF_FRONTEND_ORIGIN` to the Vercel URL after the frontend is created.
 4. Set `DEVBRIEF_ADMIN_TOKEN` in Render to protect admin mutation endpoints.
-5. Optionally set `OPENAI_API_KEY`; if omitted or if the API fails, deterministic Korean demo summaries are used.
+5. Optionally set `OPENAI_API_KEY`; if omitted, if the API fails, or if a generated response fails quality validation, deterministic Korean demo summaries are used.
 6. Create the Vercel project with root directory `apps/web`.
 7. Set `NEXT_PUBLIC_API_BASE_URL` in Vercel to the Render API URL.
 
@@ -194,9 +199,15 @@ Web defaults:
 DevBrief is meant to demonstrate more than CRUD:
 
 - reliable ingestion with source-level success/fallback visibility
-- RSS parsing plus GitHub Trending HTML parsing
+- RSS parsing plus GitHub Trending and Anthropic newsroom HTML parsing
 - duplicate detection through content hashes
 - anchor + BM25/IDF heuristic grouping, scoring, and Korean briefing generation
-- OpenAI provider abstraction with prompt/response validation and deterministic fallback
+- OpenAI provider abstraction with prompt/response validation, representative quality fixtures, and deterministic fallback
 - Redis distributed gate/cache status with local lock fallback
 - responsive Korean product UI for home, detail, trends, and admin views
+
+## Optional Next Steps
+
+- Add embedding similarity on top of the current anchor + BM25/IDF grouping.
+- Move the public demo from free H2 storage to managed PostgreSQL and Redis when persistence matters more than free hosting.
+- Add a small human-evaluation set for live OpenAI summaries after enough real source traffic accumulates.

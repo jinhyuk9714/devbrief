@@ -18,6 +18,7 @@ import java.util.concurrent.locks.ReentrantLock;
 @Service
 public class IngestionService {
     private static final int RESULT_MESSAGE_MAX_LENGTH = 1000;
+    private static final int MAX_ARTICLES_PER_SOURCE = 40;
 
     private final SourceRepository sourceRepository;
     private final ArticleRepository articleRepository;
@@ -25,6 +26,7 @@ public class IngestionService {
     private final NewsSourceCatalog catalog;
     private final RssFeedParser rssFeedParser;
     private final GitHubTrendingParser gitHubTrendingParser;
+    private final AnthropicNewsParser anthropicNewsParser;
     private final RedisGateway redisGateway;
     private final RestClient restClient;
     private final ReentrantLock localIngestionLock = new ReentrantLock();
@@ -37,11 +39,12 @@ public class IngestionService {
                             NewsSourceCatalog catalog,
                             RssFeedParser rssFeedParser,
                             GitHubTrendingParser gitHubTrendingParser,
+                            AnthropicNewsParser anthropicNewsParser,
                             RedisGateway redisGateway,
                             @Value("${devbrief.ingestion.network-enabled:false}") boolean networkEnabled,
                             @Value("${devbrief.ingestion.http-connect-timeout:3s}") Duration connectTimeout,
                             @Value("${devbrief.ingestion.http-read-timeout:8s}") Duration readTimeout) {
-        this(sourceRepository, articleRepository, contentHashService, catalog, rssFeedParser, gitHubTrendingParser,
+        this(sourceRepository, articleRepository, contentHashService, catalog, rssFeedParser, gitHubTrendingParser, anthropicNewsParser,
                 redisGateway, networkEnabled, createRestClient(connectTimeout, readTimeout));
     }
 
@@ -53,8 +56,22 @@ public class IngestionService {
                      GitHubTrendingParser gitHubTrendingParser,
                      RedisGateway redisGateway,
                      boolean networkEnabled) {
-        this(sourceRepository, articleRepository, contentHashService, catalog, rssFeedParser, gitHubTrendingParser,
-                redisGateway, networkEnabled, Duration.ofSeconds(3), Duration.ofSeconds(8));
+        this(sourceRepository, articleRepository, contentHashService, catalog, rssFeedParser, gitHubTrendingParser, new AnthropicNewsParser(),
+                redisGateway, networkEnabled, createRestClient(Duration.ofSeconds(3), Duration.ofSeconds(8)));
+    }
+
+    IngestionService(SourceRepository sourceRepository,
+                     ArticleRepository articleRepository,
+                     ContentHashService contentHashService,
+                     NewsSourceCatalog catalog,
+                     RssFeedParser rssFeedParser,
+                     GitHubTrendingParser gitHubTrendingParser,
+                     RedisGateway redisGateway,
+                     boolean networkEnabled,
+                     Duration connectTimeout,
+                     Duration readTimeout) {
+        this(sourceRepository, articleRepository, contentHashService, catalog, rssFeedParser, gitHubTrendingParser, new AnthropicNewsParser(),
+                redisGateway, networkEnabled, createRestClient(connectTimeout, readTimeout));
     }
 
     private IngestionService(SourceRepository sourceRepository,
@@ -63,6 +80,7 @@ public class IngestionService {
                              NewsSourceCatalog catalog,
                              RssFeedParser rssFeedParser,
                              GitHubTrendingParser gitHubTrendingParser,
+                             AnthropicNewsParser anthropicNewsParser,
                              RedisGateway redisGateway,
                              boolean networkEnabled,
                              RestClient restClient) {
@@ -72,6 +90,7 @@ public class IngestionService {
         this.catalog = catalog;
         this.rssFeedParser = rssFeedParser;
         this.gitHubTrendingParser = gitHubTrendingParser;
+        this.anthropicNewsParser = anthropicNewsParser;
         this.redisGateway = redisGateway;
         this.networkEnabled = networkEnabled;
         this.restClient = restClient;
@@ -170,6 +189,10 @@ public class IngestionService {
     public void seedSources() {
         for (NewsSourceCatalog.SourceSpec spec : catalog.defaults()) {
             sourceRepository.findByName(spec.name())
+                    .map(source -> {
+                        source.syncCatalogMetadata(spec.type(), spec.url(), spec.category());
+                        return source;
+                    })
                     .orElseGet(() -> sourceRepository.save(Source.create(spec.name(), spec.type(), spec.url(), spec.category())));
         }
     }
@@ -191,6 +214,9 @@ public class IngestionService {
             if ("API".equalsIgnoreCase(source.getType()) && "GitHub Trending".equalsIgnoreCase(source.getName())) {
                 return parseGitHubTrending(source, body);
             }
+            if ("HTML".equalsIgnoreCase(source.getType()) && "Anthropic News".equalsIgnoreCase(source.getName())) {
+                return parseAnthropicNews(source, body);
+            }
             if (!"RSS".equalsIgnoreCase(source.getType())) {
                 return fallback(source, "지원하지 않는 source 타입이라 대체 데이터를 사용했습니다.");
             }
@@ -206,14 +232,21 @@ public class IngestionService {
             if (articles.isEmpty()) {
                 return fallback(source, emptyFeedMessage());
             }
-            return new FetchOutcome(
-                    articles,
-                    SourceFetchStatus.OK,
-                    false,
-                    "GitHub Trending 수집 성공: %d개 기사 확인".formatted(articles.size())
-            );
+            return ok("GitHub Trending 수집 성공", articles);
         } catch (Exception ex) {
             return fallback(source, parseFailureMessage("GitHub Trending", ex));
+        }
+    }
+
+    private FetchOutcome parseAnthropicNews(Source source, String body) {
+        try {
+            List<ParsedArticle> articles = anthropicNewsParser.parse(body, source.getId(), source.getCategory());
+            if (articles.isEmpty()) {
+                return fallback(source, emptyFeedMessage());
+            }
+            return ok("HTML 뉴스 목록 수집 성공", articles);
+        } catch (Exception ex) {
+            return fallback(source, parseFailureMessage("HTML 뉴스 목록", ex));
         }
     }
 
@@ -223,15 +256,34 @@ public class IngestionService {
             if (articles.isEmpty()) {
                 return fallback(source, emptyFeedMessage());
             }
-            return new FetchOutcome(
-                    articles,
-                    SourceFetchStatus.OK,
-                    false,
-                    "RSS 수집 성공: %d개 기사 확인".formatted(articles.size())
-            );
+            return ok("RSS 수집 성공", articles);
         } catch (Exception ex) {
             return fallback(source, parseFailureMessage("RSS", ex));
         }
+    }
+
+    private FetchOutcome ok(String label, List<ParsedArticle> articles) {
+        List<ParsedArticle> selected = latest(articles);
+        String message = articles.size() > MAX_ARTICLES_PER_SOURCE
+                ? "%s: 원본 %d개 중 최신 %d개 사용".formatted(label, articles.size(), selected.size())
+                : "%s: %d개 기사 확인".formatted(label, selected.size());
+        return new FetchOutcome(
+                selected,
+                SourceFetchStatus.OK,
+                false,
+                message
+        );
+    }
+
+    private List<ParsedArticle> latest(List<ParsedArticle> articles) {
+        return articles.stream()
+                .sorted((first, second) -> safeInstant(second.publishedAt()).compareTo(safeInstant(first.publishedAt())))
+                .limit(MAX_ARTICLES_PER_SOURCE)
+                .toList();
+    }
+
+    private Instant safeInstant(Instant value) {
+        return value == null ? Instant.EPOCH : value;
     }
 
     private FetchOutcome fallback(Source source, String message) {

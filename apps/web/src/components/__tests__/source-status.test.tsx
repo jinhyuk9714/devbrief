@@ -28,12 +28,12 @@ const status: SourceStatusType = {
     },
     {
       name: "Broken Feed",
-      type: "RSS",
+      type: "HTML",
       category: "개발 도구",
       enabled: true,
       lastFetchedAt: null,
       lastFetchStatus: "FALLBACK",
-      lastFetchMessage: "RSS 실패 후 대체 데이터를 사용했습니다.",
+      lastFetchMessage: "HTML 뉴스 목록 수집 실패 후 대체 데이터를 사용했습니다.",
       lastArticleCount: 2,
       lastUsedFallback: true
     },
@@ -64,6 +64,7 @@ describe("SourceStatus", () => {
     expect(screen.getByText("대체 데이터")).toBeInTheDocument();
     expect(screen.getByText("실패")).toBeInTheDocument();
     expect(screen.getByText("4개")).toBeInTheDocument();
+    expect(screen.getByText("개발 도구 · HTML")).toBeInTheDocument();
     expect(screen.getAllByText("대체 사용").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("최근 메시지 · RSS 수집 성공")).toBeInTheDocument();
     expect(screen.getByText("최근 메시지 · 네트워크 비활성화로 데모 데이터를 사용했습니다.")).toBeInTheDocument();
