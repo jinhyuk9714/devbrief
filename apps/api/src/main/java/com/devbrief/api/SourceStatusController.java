@@ -32,7 +32,11 @@ public class SourceStatusController {
                         source.getType(),
                         displayText.category(source.getCategory()),
                         source.isEnabled(),
-                        source.getLastFetchedAt()
+                        source.getLastFetchedAt(),
+                        source.getLastFetchStatus(),
+                        source.getLastFetchMessage(),
+                        source.getLastArticleCount(),
+                        source.isLastUsedFallback()
                 ))
                 .toList();
         return new SourceStatusResponse(sources, redisGateway.status());
@@ -41,6 +45,16 @@ public class SourceStatusController {
     public record SourceStatusResponse(List<SourceStatusItem> sources, Map<String, Object> cache) {
     }
 
-    public record SourceStatusItem(String name, String type, String category, boolean enabled, Instant lastFetchedAt) {
+    public record SourceStatusItem(
+            String name,
+            String type,
+            String category,
+            boolean enabled,
+            Instant lastFetchedAt,
+            com.devbrief.domain.SourceFetchStatus lastFetchStatus,
+            String lastFetchMessage,
+            int lastArticleCount,
+            boolean lastUsedFallback
+    ) {
     }
 }

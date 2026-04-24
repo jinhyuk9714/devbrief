@@ -16,9 +16,8 @@ spring:
       port: ${DEVBRIEF_REDIS_PORT:6379}
 
 devbrief:
-  frontend-origin: ${DEVBRIEF_FRONTEND_ORIGIN:http://localhost:3000}
+  frontend-origin: ${DEVBRIEF_FRONTEND_ORIGIN:http://localhost:3000,http://127.0.0.1:3000}
   ingestion:
     network-enabled: ${DEVBRIEF_NETWORK_ENABLED:false}
   demo:
     seed-on-startup: ${DEVBRIEF_SEED_ON_STARTUP:true}
-

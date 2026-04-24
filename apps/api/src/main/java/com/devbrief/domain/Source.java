@@ -28,6 +28,16 @@ public class Source {
 
     private Instant lastFetchedAt;
 
+    @Enumerated(EnumType.STRING)
+    private SourceFetchStatus lastFetchStatus;
+
+    @Column(length = 1000)
+    private String lastFetchMessage;
+
+    private Integer lastArticleCount;
+
+    private Boolean lastUsedFallback;
+
     protected Source() {
     }
 
@@ -44,6 +54,14 @@ public class Source {
     }
 
     public void markFetched(Instant fetchedAt) {
+        this.lastFetchedAt = fetchedAt;
+    }
+
+    public void markFetchResult(SourceFetchStatus status, String message, int articleCount, boolean usedFallback, Instant fetchedAt) {
+        this.lastFetchStatus = status;
+        this.lastFetchMessage = message;
+        this.lastArticleCount = articleCount;
+        this.lastUsedFallback = usedFallback;
         this.lastFetchedAt = fetchedAt;
     }
 
@@ -74,5 +92,20 @@ public class Source {
     public Instant getLastFetchedAt() {
         return lastFetchedAt;
     }
-}
 
+    public SourceFetchStatus getLastFetchStatus() {
+        return lastFetchStatus;
+    }
+
+    public String getLastFetchMessage() {
+        return lastFetchMessage;
+    }
+
+    public int getLastArticleCount() {
+        return lastArticleCount == null ? 0 : lastArticleCount;
+    }
+
+    public boolean isLastUsedFallback() {
+        return Boolean.TRUE.equals(lastUsedFallback);
+    }
+}

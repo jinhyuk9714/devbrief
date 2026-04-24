@@ -146,9 +146,39 @@ export const briefingDetail: BriefingDetail = {
 
 export const sourceStatus: SourceStatus = {
   sources: [
-    { name: "GitHub Trending", type: "API", category: "오픈소스", enabled: true, lastFetchedAt: "2026-04-24T08:30:00Z" },
-    { name: "Hacker News", type: "RSS", category: "개발 도구", enabled: true, lastFetchedAt: "2026-04-24T08:30:00Z" },
-    { name: "OpenAI Blog", type: "RSS", category: "AI 모델", enabled: true, lastFetchedAt: "2026-04-24T08:30:00Z" }
+    {
+      name: "GitHub Trending",
+      type: "API",
+      category: "오픈소스",
+      enabled: true,
+      lastFetchedAt: "2026-04-24T08:30:00Z",
+      lastFetchStatus: "DEMO",
+      lastFetchMessage: "네트워크 비활성화 또는 비RSS 출처라 데모 데이터를 사용했습니다.",
+      lastArticleCount: 2,
+      lastUsedFallback: true
+    },
+    {
+      name: "Hacker News",
+      type: "RSS",
+      category: "개발 도구",
+      enabled: true,
+      lastFetchedAt: "2026-04-24T08:30:00Z",
+      lastFetchStatus: "OK",
+      lastFetchMessage: "RSS 수집 성공",
+      lastArticleCount: 4,
+      lastUsedFallback: false
+    },
+    {
+      name: "OpenAI Blog",
+      type: "RSS",
+      category: "AI 모델",
+      enabled: true,
+      lastFetchedAt: "2026-04-24T08:30:00Z",
+      lastFetchStatus: "FALLBACK",
+      lastFetchMessage: "RSS 수집 실패 후 대체 데이터를 사용했습니다.",
+      lastArticleCount: 2,
+      lastUsedFallback: true
+    }
   ],
   cache: {
     redis: "demo",

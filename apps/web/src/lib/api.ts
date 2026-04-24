@@ -1,5 +1,5 @@
 import { briefingDetail, sourceStatus, todayBriefings, trendData } from "./demo-data";
-import type { BriefingDetail, SourceStatus, TodayBriefings, TrendResponse } from "./types";
+import type { AdminActionResult, BriefingDetail, SourceStatus, TodayBriefings, TrendResponse } from "./types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
 
@@ -42,5 +42,5 @@ export async function runAdminAction(path: "/api/admin/ingest/run" | "/api/admin
   if (!response.ok) {
     throw new Error(`요청 실패: ${response.status}`);
   }
-  return response.json() as Promise<Record<string, unknown>>;
+  return response.json() as Promise<AdminActionResult>;
 }

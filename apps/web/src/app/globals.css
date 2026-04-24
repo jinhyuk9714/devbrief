@@ -692,6 +692,48 @@ button {
   font-weight: 800;
 }
 
+.operation-output p {
+  color: var(--panel);
+  margin: 12px 0 0;
+}
+
+.operation-summary {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 14px;
+}
+
+.operation-summary strong {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: var(--panel);
+  padding: 12px;
+}
+
+.operation-sources {
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 14px;
+}
+
+.operation-sources div {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.operation-sources strong {
+  color: var(--panel);
+}
+
+.operation-sources span {
+  color: #8ddbd2;
+}
+
 .operation-output pre {
   overflow: auto;
   white-space: pre-wrap;
@@ -724,18 +766,49 @@ button {
 }
 
 .source-row {
+  align-items: center;
   border-bottom: 1px solid var(--line);
   color: var(--muted);
   display: grid;
   font-size: 14px;
   gap: 12px;
-  grid-template-columns: 1.4fr 1fr 60px;
+  grid-template-columns: minmax(180px, 1.4fr) 110px 72px minmax(120px, 0.8fr) 76px;
   padding: 10px 0;
 }
 
-.source-row span:first-child {
+.source-row div > span {
   color: var(--ink);
+  display: block;
   font-weight: 700;
+}
+
+.source-row small {
+  color: var(--muted);
+  display: block;
+  margin-top: 4px;
+}
+
+.source-badge {
+  border: 1px solid var(--line);
+  color: var(--ink);
+  display: inline-flex;
+  font-size: 12px;
+  justify-content: center;
+  padding: 6px 8px;
+}
+
+.source-badge.status-ok {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.source-badge.status-demo,
+.source-badge.status-fallback {
+  background: var(--soft);
+}
+
+.source-badge.status-failed {
+  color: var(--danger);
 }
 
 .empty-state {
@@ -800,7 +873,9 @@ button {
   .briefing-fields,
   .value-section,
   .trend-lane,
-  .status-grid {
+  .status-grid,
+  .operation-summary,
+  .source-row {
     grid-template-columns: 1fr;
   }
 
@@ -839,6 +914,16 @@ button {
 
   .range-switch a {
     flex: 1;
+  }
+
+  .operation-sources div {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .source-badge {
+    justify-content: flex-start;
   }
 }
 

@@ -4,12 +4,30 @@ import type { SourceStatus as SourceStatusType } from "../lib/types";
 function redisLabel(value: unknown) {
   if (value === "available") return "사용 가능";
   if (value === "unavailable") return "연결 실패";
-  if (value === "demo") return "데모";
+  if (value === "demo") return "데모 모드";
   return "알 수 없음";
 }
 
 function cacheLabel(value: unknown) {
   return value ? "활성" : "비활성";
+}
+
+function sourceStatusLabel(value: unknown) {
+  if (value === "OK") return "정상";
+  if (value === "DEMO") return "데모";
+  if (value === "FALLBACK") return "대체 데이터";
+  if (value === "FAILED") return "실패";
+  return "미수집";
+}
+
+function formatFetchedAt(value: string | null) {
+  if (!value) return "미수집";
+  return new Date(value).toLocaleString("ko-KR", {
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
 }
 
 export function SourceStatus({ status }: { status: SourceStatusType }) {
@@ -34,9 +52,16 @@ export function SourceStatus({ status }: { status: SourceStatusType }) {
       <div className="source-table">
         {status.sources.slice(0, 6).map((source) => (
           <div className="source-row" key={source.name}>
-            <span>{source.name}</span>
-            <span>{source.category}</span>
-            <span>{source.type}</span>
+            <div>
+              <span>{source.name}</span>
+              <small>{source.category} · {source.type}</small>
+            </div>
+            <strong className={`source-badge status-${source.lastFetchStatus?.toLowerCase() ?? "unknown"}`}>
+              {sourceStatusLabel(source.lastFetchStatus)}
+            </strong>
+            <span>{source.lastArticleCount ?? 0}개</span>
+            <span>{formatFetchedAt(source.lastFetchedAt)}</span>
+            <span>{source.lastUsedFallback ? "대체 사용" : "원본"}</span>
           </div>
         ))}
       </div>

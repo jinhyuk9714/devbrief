@@ -58,7 +58,28 @@ export type SourceStatus = {
     category: string;
     enabled: boolean;
     lastFetchedAt: string | null;
+    lastFetchStatus: "OK" | "DEMO" | "FALLBACK" | "FAILED" | string | null;
+    lastFetchMessage: string | null;
+    lastArticleCount: number;
+    lastUsedFallback: boolean;
   }>;
   cache: Record<string, unknown>;
 };
 
+export type SourceResult = {
+  sourceName: string;
+  status: "OK" | "DEMO" | "FALLBACK" | "FAILED" | string;
+  fetchedCount: number;
+  importedCount: number;
+  fallbackUsed: boolean;
+  message: string;
+};
+
+export type AdminActionResult = {
+  sourcesChecked?: number;
+  articlesImported?: number;
+  failedSources?: string[];
+  sourceResults?: SourceResult[];
+  briefingsGenerated?: number;
+  [key: string]: unknown;
+};
