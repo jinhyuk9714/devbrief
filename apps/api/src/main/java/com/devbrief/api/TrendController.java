@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -25,7 +27,10 @@ public class TrendController {
 
     @GetMapping
     public TrendResponse trends(@RequestParam(defaultValue = "day") String range) {
+        String normalizedRange = "week".equals(range) ? "week" : "day";
+        Instant threshold = Instant.now().minus("week".equals(normalizedRange) ? Duration.ofDays(7) : Duration.ofDays(1));
         List<TrendItem> trends = briefingService.trends().stream()
+                .filter(cluster -> cluster.getLastSeenAt() != null && !cluster.getLastSeenAt().isBefore(threshold))
                 .map(cluster -> new TrendItem(
                         displayText.category(cluster.getCategory()),
                         displayText.briefingTitle(cluster.getTitle()),
@@ -36,7 +41,7 @@ public class TrendController {
                 .toList();
         Map<String, Long> categories = trends.stream()
                 .collect(Collectors.groupingBy(TrendItem::category, Collectors.counting()));
-        return new TrendResponse(range, trends, categories);
+        return new TrendResponse(normalizedRange, trends, categories);
     }
 
     public record TrendResponse(String range, List<TrendItem> trends, Map<String, Long> categories) {

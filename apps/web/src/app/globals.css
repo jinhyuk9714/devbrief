@@ -676,8 +676,31 @@ button {
   margin-bottom: 24px;
 }
 
+.admin-token {
+  display: grid;
+  gap: 8px;
+  max-width: 420px;
+}
+
+.admin-token span {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.admin-token input {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font: inherit;
+  min-height: 44px;
+  padding: 0 12px;
+  width: 100%;
+}
+
 .admin-actions {
   gap: 12px;
+  margin-top: 16px;
 }
 
 .admin-actions button {

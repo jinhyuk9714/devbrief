@@ -22,6 +22,8 @@ services:
         value: "true"
       - key: DEVBRIEF_FRONTEND_ORIGIN
         sync: false
+      - key: DEVBRIEF_ADMIN_TOKEN
+        sync: false
       - key: OPENAI_API_KEY
         sync: false
       - key: DEVBRIEF_OPENAI_MODEL

@@ -13,6 +13,7 @@ vi.mock("../../lib/api", () => ({
 describe("AdminPanel", () => {
   beforeEach(() => {
     runAdminAction.mockReset();
+    window.sessionStorage.clear();
   });
 
   it("renders Korean operation labels", () => {
@@ -20,8 +21,18 @@ describe("AdminPanel", () => {
 
     expect(screen.getByRole("button", { name: "수집 실행" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "브리핑 생성" })).toBeInTheDocument();
+    expect(screen.getByLabelText("관리 토큰")).toBeInTheDocument();
     expect(screen.getByText("시스템 상태와 수집 파이프라인을 확인합니다.")).toBeInTheDocument();
     expect(screen.getByText("대기 중")).toBeInTheDocument();
+  });
+
+  it("requires a token before running protected admin actions", async () => {
+    render(<AdminPanel />);
+
+    await userEvent.click(screen.getByRole("button", { name: "수집 실행" }));
+
+    expect(runAdminAction).not.toHaveBeenCalled();
+    expect(screen.getByText("관리 토큰이 필요합니다.")).toBeInTheDocument();
   });
 
   it("summarizes ingestion results before raw details", async () => {
@@ -42,9 +53,11 @@ describe("AdminPanel", () => {
     });
 
     render(<AdminPanel />);
+    await userEvent.type(screen.getByLabelText("관리 토큰"), "secret-token");
     await userEvent.click(screen.getByRole("button", { name: "수집 실행" }));
 
     await waitFor(() => {
+      expect(runAdminAction).toHaveBeenCalledWith("/api/admin/ingest/run", "secret-token");
       expect(screen.getByText("2개 출처 확인")).toBeInTheDocument();
       expect(screen.getByText("3개 신규 저장")).toBeInTheDocument();
       expect(screen.getByText("실패 1개")).toBeInTheDocument();

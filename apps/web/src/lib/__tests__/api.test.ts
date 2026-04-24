@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getSourceStatus, getTodayBriefings } from "../api";
+import { getSourceStatus, getTodayBriefings, runAdminAction } from "../api";
 
 describe("api client", () => {
   afterEach(() => {
@@ -30,5 +30,34 @@ describe("api client", () => {
 
     expect(status.sources.length).toBeGreaterThan(0);
     expect(status.sources[0].lastFetchStatus).toBeTruthy();
+  });
+
+  it("sends the admin token only for admin mutations", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ sourcesChecked: 1, articlesImported: 0, failedSources: [] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await runAdminAction("/api/admin/ingest/run", "secret-token");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/admin/ingest/run",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          "Content-Type": "application/json",
+          "X-Admin-Token": "secret-token"
+        })
+      })
+    );
+  });
+
+  it("uses a Korean authorization error for protected admin mutations", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("관리 토큰이 필요합니다.", { status: 401 })));
+
+    await expect(runAdminAction("/api/admin/ingest/run", "wrong-token")).rejects.toThrow("관리 토큰이 필요합니다");
   });
 });

@@ -2,6 +2,10 @@
 
 DevBrief는 AI/개발 뉴스를 개발자 액션까지 정리해주는 한국어 데일리 브리핑 서비스형 풀스택 포트폴리오입니다.
 
+## What I Built
+
+DevBrief는 개발자에게 중요한 AI/개발 뉴스 신호를 골라 액션 가능한 브리핑으로 바꾸는 시스템입니다. RSS, GitHub Trending, 기술 블로그에서 수집한 기사를 URL/content hash로 중복 제거하고, 시그널 기반 휴리스틱 그룹핑과 점수화를 거쳐 한국어 요약, 중요도, 개발자 액션 아이템, 원문 출처를 제공합니다.
+
 Live demo:
 
 - Web: https://web-eight-rho-31.vercel.app
@@ -27,15 +31,15 @@ Live demo:
 flowchart LR
   A["RSS/API source"] --> B["Spring Boot ingestion"]
   B --> C["중복 제거"]
-  C --> D["토픽 클러스터링/점수화"]
+  C --> D["시그널 기반 휴리스틱 그룹핑/점수화"]
   D --> E["OpenAI 한국어 요약"]
   E --> F["PostgreSQL briefings"]
   F --> G["Next.js briefing desk"]
-  B --> H["Redis lock/cache/status"]
+  B --> H["Redis distributed gate/cache/status"]
   E --> I["Deterministic fallback"]
 ```
 
-핵심 운영 흐름은 `RSS/API 수집 -> 중복 제거 -> 클러스터링 -> 요약 생성 -> Redis 캐시/상태 표시`입니다. `/admin`에서 source별 `정상`, `데모`, `대체 데이터`, `실패` 상태와 가져온 기사 수를 확인할 수 있습니다.
+핵심 운영 흐름은 `RSS/API 수집 -> 중복 제거 -> 시그널 기반 그룹핑 -> 요약 생성 -> Redis 캐시/상태 표시`입니다. `/admin`에서 source별 `정상`, `데모`, `대체 데이터`, `실패` 상태와 가져온 기사 수를 확인할 수 있습니다. Redis가 연결된 환경에서는 수집 job을 distributed gate로 보호하고, Redis가 없거나 장애일 때는 local lock fallback으로 데모가 계속 동작합니다.
 
 ## Screenshots
 
@@ -57,8 +61,8 @@ flowchart LR
 - `GET /api/briefings/{id}`
 - `GET /api/trends?range=day|week`
 - `GET /api/sources/status`
-- `POST /api/admin/ingest/run`
-- `POST /api/admin/briefings/generate`
+- `POST /api/admin/ingest/run` (`DEVBRIEF_ADMIN_TOKEN` 설정 시 `X-Admin-Token` 필요)
+- `POST /api/admin/briefings/generate` (`DEVBRIEF_ADMIN_TOKEN` 설정 시 `X-Admin-Token` 필요)
 
 ## Local Development
 
@@ -110,9 +114,10 @@ Deployment steps:
 1. Push this repository to GitHub.
 2. Create the Render Blueprint from `render.yaml`.
 3. In Render, set `DEVBRIEF_FRONTEND_ORIGIN` to the Vercel URL after the frontend is created.
-4. Optionally set `OPENAI_API_KEY`; if omitted or if the API fails, deterministic Korean demo summaries are used.
-5. Create the Vercel project with root directory `apps/web`.
-6. Set `NEXT_PUBLIC_API_BASE_URL` in Vercel to the Render API URL.
+4. Set `DEVBRIEF_ADMIN_TOKEN` in Render to protect admin mutation endpoints.
+5. Optionally set `OPENAI_API_KEY`; if omitted or if the API fails, deterministic Korean demo summaries are used.
+6. Create the Vercel project with root directory `apps/web`.
+7. Set `NEXT_PUBLIC_API_BASE_URL` in Vercel to the Render API URL.
 
 Deployment URLs:
 
@@ -139,6 +144,7 @@ API defaults:
 - `DEVBRIEF_REDIS_PORT=6379`
 - `DEVBRIEF_NETWORK_ENABLED=false`
 - `DEVBRIEF_SEED_ON_STARTUP=true`
+- `DEVBRIEF_ADMIN_TOKEN=` optional; if set, admin mutation endpoints require `X-Admin-Token`
 - `OPENAI_API_KEY=` optional; empty uses deterministic fallback
 - `OPENAI_BASE_URL=https://api.openai.com/v1`
 - `DEVBRIEF_OPENAI_MODEL=gpt-4o-mini`
@@ -154,7 +160,7 @@ DevBrief is meant to demonstrate more than CRUD:
 - reliable ingestion with source-level success/fallback visibility
 - RSS parsing plus GitHub Trending HTML parsing
 - duplicate detection through content hashes
-- topic scoring and Korean briefing generation
+- signal-based heuristic grouping, scoring, and Korean briefing generation
 - OpenAI provider abstraction with deterministic fallback
-- Redis-backed job lock/cache status
+- Redis distributed gate/cache status with local lock fallback
 - responsive Korean product UI for home, detail, trends, and admin views

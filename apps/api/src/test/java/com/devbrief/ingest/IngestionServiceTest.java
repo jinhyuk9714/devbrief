@@ -143,4 +143,80 @@ class IngestionServiceTest {
             executor.shutdownNow();
         }
     }
+
+    @Test
+    void returnsBusyResultWhenRedisLockIsHeldByAnotherInstance() {
+        Source source = Source.create("Working Feed", "RSS", "https://example.com/working.xml", "AI Models");
+        SourceRepository sourceRepository = mock(SourceRepository.class);
+        ArticleRepository articleRepository = mock(ArticleRepository.class);
+        RedisGateway redisGateway = mock(RedisGateway.class);
+        NewsSourceCatalog catalog = mock(NewsSourceCatalog.class);
+
+        when(redisGateway.tryLock("devbrief:ingest:lock", java.time.Duration.ofSeconds(45)))
+                .thenReturn(RedisGateway.LockAttempt.held());
+        when(sourceRepository.findByEnabledTrueOrderByNameAsc()).thenReturn(List.of(source));
+        when(catalog.defaults()).thenReturn(List.of());
+
+        IngestionService service = new IngestionService(
+                sourceRepository,
+                articleRepository,
+                new ContentHashService(),
+                catalog,
+                mock(RssFeedParser.class),
+                new GitHubTrendingParser(),
+                redisGateway,
+                false
+        );
+
+        IngestionService.IngestionResult result = service.run();
+
+        assertThat(result.sourcesChecked()).isZero();
+        assertThat(result.articlesImported()).isZero();
+        assertThat(result.failedSources()).containsExactly("수집 작업");
+        assertThat(result.sourceResults().get(0).message()).isEqualTo("이미 다른 인스턴스에서 수집 작업이 실행 중입니다.");
+        verify(catalog, never()).demoArticlesFor(any());
+        verify(redisGateway, never()).release("devbrief:ingest:lock");
+    }
+
+    @Test
+    void continuesWithLocalLockWhenRedisIsUnavailable() {
+        Source source = Source.create("Working Feed", "RSS", "https://example.com/working.xml", "AI Models");
+        SourceRepository sourceRepository = mock(SourceRepository.class);
+        ArticleRepository articleRepository = mock(ArticleRepository.class);
+        RedisGateway redisGateway = mock(RedisGateway.class);
+        NewsSourceCatalog catalog = mock(NewsSourceCatalog.class);
+
+        when(redisGateway.tryLock("devbrief:ingest:lock", java.time.Duration.ofSeconds(45)))
+                .thenReturn(RedisGateway.LockAttempt.unavailable());
+        when(sourceRepository.findByEnabledTrueOrderByNameAsc()).thenReturn(List.of(source));
+        when(catalog.defaults()).thenReturn(List.of());
+        when(articleRepository.existsByContentHash(any())).thenReturn(false);
+        when(catalog.demoArticlesFor(source)).thenReturn(List.of(new ParsedArticle(
+                null,
+                "AI Models",
+                "Working model update",
+                "https://example.com/working",
+                "Working Feed",
+                Instant.parse("2026-04-24T09:00:00Z"),
+                "A working source imports when Redis is unavailable."
+        )));
+
+        IngestionService service = new IngestionService(
+                sourceRepository,
+                articleRepository,
+                new ContentHashService(),
+                catalog,
+                mock(RssFeedParser.class),
+                new GitHubTrendingParser(),
+                redisGateway,
+                false
+        );
+
+        IngestionService.IngestionResult result = service.run();
+
+        assertThat(result.sourcesChecked()).isEqualTo(1);
+        assertThat(result.articlesImported()).isEqualTo(1);
+        verify(articleRepository).save(any(Article.class));
+        verify(redisGateway, never()).release("devbrief:ingest:lock");
+    }
 }

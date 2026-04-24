@@ -17,6 +17,7 @@ spring:
 
 devbrief:
   frontend-origin: ${DEVBRIEF_FRONTEND_ORIGIN:http://localhost:3000,http://127.0.0.1:3000}
+  admin-token: ${DEVBRIEF_ADMIN_TOKEN:}
   ingestion:
     network-enabled: ${DEVBRIEF_NETWORK_ENABLED:false}
   openai:

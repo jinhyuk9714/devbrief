@@ -16,15 +16,15 @@ public class RedisGateway {
         this.redisTemplate = redisTemplate.getIfAvailable();
     }
 
-    public boolean tryLock(String key, Duration ttl) {
+    public LockAttempt tryLock(String key, Duration ttl) {
         if (redisTemplate == null) {
-            return false;
+            return LockAttempt.unavailable();
         }
         try {
             Boolean locked = redisTemplate.opsForValue().setIfAbsent(key, "locked", ttl);
-            return Boolean.TRUE.equals(locked);
+            return Boolean.TRUE.equals(locked) ? LockAttempt.acquired() : LockAttempt.held();
         } catch (Exception ignored) {
-            return false;
+            return LockAttempt.unavailable();
         }
     }
 
@@ -65,5 +65,32 @@ public class RedisGateway {
         }
         return status;
     }
-}
 
+    public record LockAttempt(Status status) {
+        public static LockAttempt acquired() {
+            return new LockAttempt(Status.ACQUIRED);
+        }
+
+        public static LockAttempt held() {
+            return new LockAttempt(Status.HELD);
+        }
+
+        public static LockAttempt unavailable() {
+            return new LockAttempt(Status.UNAVAILABLE);
+        }
+
+        public boolean acquiredLock() {
+            return status == Status.ACQUIRED;
+        }
+
+        public boolean heldByAnotherInstance() {
+            return status == Status.HELD;
+        }
+    }
+
+    public enum Status {
+        ACQUIRED,
+        HELD,
+        UNAVAILABLE
+    }
+}

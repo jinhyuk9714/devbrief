@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { RefreshCcw, Wand2 } from "lucide-react";
 import { runAdminAction } from "../lib/api";
 import type { AdminActionResult } from "../lib/types";
@@ -14,11 +14,30 @@ type ActionState = {
 
 export function AdminPanel() {
   const [state, setState] = useState<ActionState>({ label: "대기 중", result: null, error: null, loading: false });
+  const [adminToken, setAdminToken] = useState("");
+
+  useEffect(() => {
+    setAdminToken(window.sessionStorage.getItem("devbrief-admin-token") ?? "");
+  }, []);
+
+  function updateAdminToken(value: string) {
+    setAdminToken(value);
+    if (value.trim()) {
+      window.sessionStorage.setItem("devbrief-admin-token", value);
+    } else {
+      window.sessionStorage.removeItem("devbrief-admin-token");
+    }
+  }
 
   async function run(label: string, path: "/api/admin/ingest/run" | "/api/admin/briefings/generate") {
+    const token = adminToken.trim();
+    if (!token) {
+      setState({ label, result: null, error: "관리 토큰이 필요합니다.", loading: false });
+      return;
+    }
     setState({ label, result: null, error: "실행 중", loading: true });
     try {
-      const result = await runAdminAction(path);
+      const result = await runAdminAction(path, token);
       setState({ label, result, error: null, loading: false });
     } catch (error) {
       setState({ label, result: null, error: error instanceof Error ? error.message : "요청 실패", loading: false });
@@ -34,6 +53,16 @@ export function AdminPanel() {
         <h1>데모 운영</h1>
         <p>시스템 상태와 수집 파이프라인을 확인합니다.</p>
       </div>
+      <label className="admin-token">
+        <span>관리 토큰</span>
+        <input
+          autoComplete="off"
+          onChange={(event) => updateAdminToken(event.target.value)}
+          placeholder="수집/생성 실행용 토큰"
+          type="password"
+          value={adminToken}
+        />
+      </label>
       <div className="admin-actions">
         <button disabled={state.loading} onClick={() => run("수집", "/api/admin/ingest/run")}>
           <RefreshCcw size={18} aria-hidden />

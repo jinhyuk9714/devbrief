@@ -34,12 +34,18 @@ export function getSourceStatus(): Promise<SourceStatus> {
   return fetchJson("/api/sources/status", sourceStatus);
 }
 
-export async function runAdminAction(path: "/api/admin/ingest/run" | "/api/admin/briefings/generate") {
+export async function runAdminAction(path: "/api/admin/ingest/run" | "/api/admin/briefings/generate", adminToken: string) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" }
+    headers: {
+      "Content-Type": "application/json",
+      "X-Admin-Token": adminToken
+    }
   });
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new Error("관리 토큰이 필요합니다.");
+    }
     throw new Error(`요청 실패: ${response.status}`);
   }
   return response.json() as Promise<AdminActionResult>;

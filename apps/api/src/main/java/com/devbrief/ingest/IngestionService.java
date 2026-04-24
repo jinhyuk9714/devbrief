@@ -51,13 +51,20 @@ public class IngestionService {
         if (!localIngestionLock.tryLock()) {
             return busyResult();
         }
-        seedSources();
-        boolean lock = redisGateway.tryLock("devbrief:ingest:lock", Duration.ofSeconds(45));
-        List<Source> sources = sourceRepository.findByEnabledTrueOrderByNameAsc();
+        RedisGateway.LockAttempt lock = RedisGateway.LockAttempt.unavailable();
         int imported = 0;
         List<String> failed = new ArrayList<>();
         List<SourceResult> sourceResults = new ArrayList<>();
         try {
+            seedSources();
+            lock = redisGateway.tryLock("devbrief:ingest:lock", Duration.ofSeconds(45));
+            if (lock == null) {
+                lock = RedisGateway.LockAttempt.unavailable();
+            }
+            if (lock.heldByAnotherInstance()) {
+                return busyResult("이미 다른 인스턴스에서 수집 작업이 실행 중입니다.");
+            }
+            List<Source> sources = sourceRepository.findByEnabledTrueOrderByNameAsc();
             for (Source source : sources) {
                 int sourceImported = 0;
                 FetchOutcome outcome = null;
@@ -106,17 +113,20 @@ public class IngestionService {
                     ));
                 }
             }
+            return new IngestionResult(sources.size(), imported, failed, sourceResults);
         } finally {
-            if (lock) {
+            if (lock.acquiredLock()) {
                 redisGateway.release("devbrief:ingest:lock");
             }
             localIngestionLock.unlock();
         }
-        return new IngestionResult(sources.size(), imported, failed, sourceResults);
     }
 
     private IngestionResult busyResult() {
-        String message = "이미 수집 작업이 실행 중입니다.";
+        return busyResult("이미 수집 작업이 실행 중입니다.");
+    }
+
+    private IngestionResult busyResult(String message) {
         return new IngestionResult(
                 0,
                 0,

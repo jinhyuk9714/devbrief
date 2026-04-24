@@ -39,8 +39,25 @@ public class KoreanDisplayText {
     }
 
     public String summary(String title, String category, String storedSummary) {
-        if (storedSummary != null && !storedSummary.isBlank() && !looksLikeDeterministicEnglish(title, storedSummary)) {
+        return summary(title, category, List.of(), storedSummary);
+    }
+
+    public String summary(String title, String category, List<Article> articles, String storedSummary) {
+        if (storedSummary != null
+                && !storedSummary.isBlank()
+                && !looksLikeDeterministicEnglish(title, storedSummary)
+                && !looksLikeGenericKoreanFallback(title, category, storedSummary)) {
             return storedSummary;
+        }
+        if (!articles.isEmpty()) {
+            Article lead = articles.get(0);
+            return "%s: %s 원문 '%s'에서 포착된 신호입니다. %s"
+                    .formatted(
+                            briefingTitle(title),
+                            lead.getSource().getName(),
+                            lead.getTitle(),
+                            articleSpecificSummaryBody(category, lead)
+                    );
         }
         return "%s: %s".formatted(briefingTitle(title), summaryBody(category));
     }
@@ -113,7 +130,21 @@ public class KoreanDisplayText {
         };
     }
 
+    private String articleSpecificSummaryBody(String category, Article article) {
+        String categoryBody = summaryBody(category);
+        String excerpt = article.getExcerpt();
+        if (excerpt == null || excerpt.isBlank()) {
+            return categoryBody;
+        }
+        return "%s 핵심 단서는 \"%s\"입니다."
+                .formatted(categoryBody, excerpt.trim());
+    }
+
     private boolean looksLikeDeterministicEnglish(String title, String storedSummary) {
         return storedSummary.startsWith(title + ":") || storedSummary.contains("practical implications for developer teams");
+    }
+
+    private boolean looksLikeGenericKoreanFallback(String title, String category, String storedSummary) {
+        return storedSummary.equals("%s: %s".formatted(briefingTitle(title), summaryBody(category)));
     }
 }

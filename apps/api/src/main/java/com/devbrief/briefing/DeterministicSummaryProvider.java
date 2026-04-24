@@ -23,7 +23,7 @@ public class DeterministicSummaryProvider implements SummaryProvider {
 
     @Override
     public GeneratedBriefing generate(TopicCluster cluster, List<Article> articles) {
-        String summary = displayText.summary(cluster.getTitle(), cluster.getCategory(), null);
+        String summary = displayText.summary(cluster.getTitle(), cluster.getCategory(), articles, null);
         String why = displayText.whyItMatters(cluster.getCategory(), null);
         List<String> keyPoints = displayText.keyPoints(articles, List.of());
         List<String> actions = displayText.actionItems(cluster.getCategory());
