@@ -20,6 +20,8 @@ devbrief:
   admin-token: ${DEVBRIEF_ADMIN_TOKEN:}
   ingestion:
     network-enabled: ${DEVBRIEF_NETWORK_ENABLED:false}
+    http-connect-timeout: ${DEVBRIEF_HTTP_CONNECT_TIMEOUT:3s}
+    http-read-timeout: ${DEVBRIEF_HTTP_READ_TIMEOUT:8s}
   scheduler:
     enabled: ${DEVBRIEF_SCHEDULER_ENABLED:true}
     cron: "${DEVBRIEF_SCHEDULER_CRON:0 0 8,18 * * *}"

@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -280,6 +281,65 @@ class IngestionServiceTest {
                     .anySatisfy(message -> assertThat(message).contains("원본 응답에서 새 기사 0개를 수집해 대체 데이터를 사용했습니다"));
             assertThat(result.sourceResults()).extracting(IngestionService.SourceResult::status)
                     .containsOnly(SourceFetchStatus.FALLBACK);
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void fallsBackWhenSourceResponseTimesOut() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/slow.xml", exchange -> {
+            try {
+                Thread.sleep(1_500);
+                byte[] body = "<rss version=\"2.0\"><channel><title>Slow</title></channel></rss>".getBytes();
+                exchange.sendResponseHeaders(200, body.length);
+                exchange.getResponseBody().write(body);
+            } catch (Exception ignored) {
+            } finally {
+                exchange.close();
+            }
+        });
+        server.start();
+        try {
+            Source slow = Source.create("Slow Feed", "RSS", "http://127.0.0.1:%d/slow.xml".formatted(server.getAddress().getPort()), "Developer Tools");
+            SourceRepository sourceRepository = mock(SourceRepository.class);
+            ArticleRepository articleRepository = mock(ArticleRepository.class);
+            RedisGateway redisGateway = mock(RedisGateway.class);
+            NewsSourceCatalog catalog = mock(NewsSourceCatalog.class);
+
+            when(sourceRepository.findByEnabledTrueOrderByNameAsc()).thenReturn(List.of(slow));
+            when(catalog.defaults()).thenReturn(List.of());
+            when(catalog.demoArticlesFor(slow)).thenReturn(List.of(new ParsedArticle(
+                    null,
+                    "Developer Tools",
+                    "Timeout fallback article",
+                    "https://example.com/fallback",
+                    "Demo",
+                    Instant.parse("2026-04-24T09:00:00Z"),
+                    "Demo fallback article."
+            )));
+            when(articleRepository.existsByContentHash(any())).thenReturn(false);
+
+            IngestionService service = new IngestionService(
+                    sourceRepository,
+                    articleRepository,
+                    new ContentHashService(),
+                    catalog,
+                    new RssFeedParser(),
+                    new GitHubTrendingParser(),
+                    redisGateway,
+                    true,
+                    Duration.ofMillis(100),
+                    Duration.ofMillis(100)
+            );
+
+            Instant startedAt = Instant.now();
+            IngestionService.IngestionResult result = service.run();
+
+            assertThat(Duration.between(startedAt, Instant.now()).toMillis()).isLessThan(1_200);
+            assertThat(result.sourceResults().getFirst().status()).isEqualTo(SourceFetchStatus.FALLBACK);
+            assertThat(result.sourceResults().getFirst().message()).contains("수집 실패 후 대체 데이터를 사용했습니다");
         } finally {
             server.stop(0);
         }

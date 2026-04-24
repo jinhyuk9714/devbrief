@@ -2,7 +2,9 @@ package com.devbrief.ingest;
 
 import com.devbrief.domain.*;
 import com.devbrief.ops.RedisGateway;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
@@ -24,10 +26,11 @@ public class IngestionService {
     private final RssFeedParser rssFeedParser;
     private final GitHubTrendingParser gitHubTrendingParser;
     private final RedisGateway redisGateway;
-    private final RestClient restClient = RestClient.builder().build();
+    private final RestClient restClient;
     private final ReentrantLock localIngestionLock = new ReentrantLock();
     private final boolean networkEnabled;
 
+    @Autowired
     public IngestionService(SourceRepository sourceRepository,
                             ArticleRepository articleRepository,
                             ContentHashService contentHashService,
@@ -35,7 +38,34 @@ public class IngestionService {
                             RssFeedParser rssFeedParser,
                             GitHubTrendingParser gitHubTrendingParser,
                             RedisGateway redisGateway,
-                            @Value("${devbrief.ingestion.network-enabled:false}") boolean networkEnabled) {
+                            @Value("${devbrief.ingestion.network-enabled:false}") boolean networkEnabled,
+                            @Value("${devbrief.ingestion.http-connect-timeout:3s}") Duration connectTimeout,
+                            @Value("${devbrief.ingestion.http-read-timeout:8s}") Duration readTimeout) {
+        this(sourceRepository, articleRepository, contentHashService, catalog, rssFeedParser, gitHubTrendingParser,
+                redisGateway, networkEnabled, createRestClient(connectTimeout, readTimeout));
+    }
+
+    IngestionService(SourceRepository sourceRepository,
+                     ArticleRepository articleRepository,
+                     ContentHashService contentHashService,
+                     NewsSourceCatalog catalog,
+                     RssFeedParser rssFeedParser,
+                     GitHubTrendingParser gitHubTrendingParser,
+                     RedisGateway redisGateway,
+                     boolean networkEnabled) {
+        this(sourceRepository, articleRepository, contentHashService, catalog, rssFeedParser, gitHubTrendingParser,
+                redisGateway, networkEnabled, Duration.ofSeconds(3), Duration.ofSeconds(8));
+    }
+
+    private IngestionService(SourceRepository sourceRepository,
+                             ArticleRepository articleRepository,
+                             ContentHashService contentHashService,
+                             NewsSourceCatalog catalog,
+                             RssFeedParser rssFeedParser,
+                             GitHubTrendingParser gitHubTrendingParser,
+                             RedisGateway redisGateway,
+                             boolean networkEnabled,
+                             RestClient restClient) {
         this.sourceRepository = sourceRepository;
         this.articleRepository = articleRepository;
         this.contentHashService = contentHashService;
@@ -44,6 +74,7 @@ public class IngestionService {
         this.gitHubTrendingParser = gitHubTrendingParser;
         this.redisGateway = redisGateway;
         this.networkEnabled = networkEnabled;
+        this.restClient = restClient;
     }
 
     @Transactional
@@ -247,5 +278,12 @@ public class IngestionService {
             return value;
         }
         return value.substring(0, maxLength);
+    }
+
+    private static RestClient createRestClient(Duration connectTimeout, Duration readTimeout) {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(connectTimeout);
+        requestFactory.setReadTimeout(readTimeout);
+        return RestClient.builder().requestFactory(requestFactory).build();
     }
 }
