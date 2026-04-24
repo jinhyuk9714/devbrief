@@ -27,7 +27,7 @@ export function AdminPanel() {
     <section className="admin-panel">
       <div className="section-heading">
         <h1>데모 운영</h1>
-        <p>Spring Boot API로 수집과 브리핑 생성을 직접 실행합니다.</p>
+        <p>시스템 상태와 수집 파이프라인을 확인합니다.</p>
       </div>
       <div className="admin-actions">
         <button disabled={state.loading} onClick={() => run("수집", "/api/admin/ingest/run")}>

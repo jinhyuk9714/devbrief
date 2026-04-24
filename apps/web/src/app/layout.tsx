@@ -4,7 +4,10 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "DevBrief",
-  description: "AI and developer news daily briefing dashboard"
+  description: "AI와 개발 뉴스를 개발자 액션까지 정리하는 데일리 브리핑",
+  icons: {
+    icon: "/icon.svg"
+  }
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -16,4 +19,3 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
-

@@ -13,9 +13,10 @@ export default async function BriefingDetailPage({ params }: { params: Promise<{
         오늘
       </Link>
       <section className="detail-header">
-        <p className="eyebrow">{briefing.category} / {briefing.importance}</p>
+        <p className="eyebrow">{briefing.category} / 중요도 {briefing.importance}</p>
         <h1>{briefing.title}</h1>
         <p>{briefing.summary}</p>
+        <p className="trust-note">이 브리핑은 수집된 여러 원문을 묶어 생성됨</p>
       </section>
 
       <section className="detail-grid">

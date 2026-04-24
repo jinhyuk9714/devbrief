@@ -20,17 +20,29 @@ export function BriefingList({ briefings }: { briefings: BriefingSummary[] }) {
           <div className="briefing-main">
             <div className="briefing-meta">
               <span>{briefing.category}</span>
-              <span><Gauge size={14} aria-hidden /> {briefing.importance}</span>
-              <span><Clock size={14} aria-hidden /> {briefing.readingMinutes}분</span>
+              <span><Gauge size={14} aria-hidden /> 중요도 {briefing.importance}</span>
+              <span><Clock size={14} aria-hidden /> {briefing.readingMinutes}분 읽기</span>
               <span><Link2 size={14} aria-hidden /> {briefing.sourceCount}개 출처</span>
             </div>
             <h2>{briefing.title}</h2>
-            <p>{briefing.summary}</p>
-            <ul>
-              {briefing.actionItems.slice(0, 2).map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
+            <div className="briefing-sections">
+              <div>
+                <span className="field-label">요약</span>
+                <p>{briefing.summary}</p>
+              </div>
+              <div>
+                <span className="field-label">왜 중요</span>
+                <p>{briefing.whyItMatters}</p>
+              </div>
+              <div>
+                <span className="field-label">해볼 것</span>
+                <ul>
+                  {briefing.actionItems.slice(0, 2).map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           </div>
           <Link className="row-link" href={`/briefings/${briefing.id}`} aria-label={`${briefing.title} 상세 보기`}>
             <ArrowUpRight size={20} aria-hidden />
