@@ -44,6 +44,20 @@ class OpenAiSummaryProviderTest {
         assertThat(failingProvider.generate(cluster, cluster.getArticles()).summary()).contains("코딩 에이전트 전반으로 MCP 서버 도입 확산");
     }
 
+    @Test
+    void fallsBackToDeterministicSummaryWhenOpenAiValidationFails() {
+        TopicCluster cluster = cluster();
+        OpenAiBriefingClient client = request -> {
+            throw new IllegalArgumentException("OpenAI 요약 응답 검증 실패");
+        };
+        SummaryProvider provider = new OpenAiSummaryProvider(client, new DeterministicSummaryProvider(new KoreanDisplayText()), "sk-test", "gpt-4o-mini");
+
+        GeneratedBriefing generated = provider.generate(cluster, cluster.getArticles());
+
+        assertThat(generated.summary()).contains("Hacker News", "MCP server adoption rises across coding agents");
+        assertThat(generated.whyItMatters()).contains("MCP servers are becoming the common tool layer");
+    }
+
     private TopicCluster cluster() {
         Source source = Source.create("Hacker News", "RSS", "https://news.ycombinator.com/rss", "Open Source");
         Article article = Article.create(source, "MCP server adoption rises across coding agents", "https://example.com/mcp", "HN",

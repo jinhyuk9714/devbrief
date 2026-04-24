@@ -48,7 +48,7 @@ flowchart LR
 - 여러 source를 주기적으로 수집하고 source별 성공, 실패, fallback 상태를 남깁니다.
 - URL/content hash로 중복을 줄인 뒤 제목과 excerpt의 anchor 신호, token overlap, BM25/IDF 가중 유사도를 함께 사용해 휴리스틱 그룹핑을 수행합니다.
 - 그룹별 점수는 기사 수, 최신성, 개발자에게 의미 있는 키워드를 함께 반영합니다.
-- OpenAI 키가 있으면 한국어 브리핑을 생성하고, 없거나 실패하면 기사 제목, source, excerpt를 섞은 deterministic fallback으로 데모가 깨지지 않게 합니다.
+- OpenAI 키가 있으면 품질 강화 프롬프트와 응답 검증을 거쳐 한국어 브리핑을 생성하고, 없거나 실패하면 기사 제목, source, excerpt를 섞은 deterministic fallback으로 데모가 깨지지 않게 합니다.
 - `/admin`은 포트폴리오 설명 페이지가 아니라 실제 운영 화면처럼 수집 실행, 브리핑 생성, source 상태, Redis 상태를 보여줍니다.
 
 ## Failure Handling
@@ -181,7 +181,7 @@ API defaults:
 - `DEVBRIEF_SCHEDULER_ZONE=Asia/Seoul`
 - `DEVBRIEF_SEED_ON_STARTUP=true`
 - `DEVBRIEF_ADMIN_TOKEN=` optional; if set, admin mutation endpoints require `X-Admin-Token`
-- `OPENAI_API_KEY=` optional; empty uses deterministic fallback
+- `OPENAI_API_KEY=` optional; empty or invalid/generated low-quality responses use deterministic fallback
 - `OPENAI_BASE_URL=https://api.openai.com/v1`
 - `DEVBRIEF_OPENAI_MODEL=gpt-4o-mini`
 
@@ -197,6 +197,6 @@ DevBrief is meant to demonstrate more than CRUD:
 - RSS parsing plus GitHub Trending HTML parsing
 - duplicate detection through content hashes
 - anchor + BM25/IDF heuristic grouping, scoring, and Korean briefing generation
-- OpenAI provider abstraction with deterministic fallback
+- OpenAI provider abstraction with prompt/response validation and deterministic fallback
 - Redis distributed gate/cache status with local lock fallback
 - responsive Korean product UI for home, detail, trends, and admin views
