@@ -11,6 +11,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Service
 public class IngestionService {
@@ -24,6 +25,7 @@ public class IngestionService {
     private final GitHubTrendingParser gitHubTrendingParser;
     private final RedisGateway redisGateway;
     private final RestClient restClient = RestClient.builder().build();
+    private final ReentrantLock localIngestionLock = new ReentrantLock();
     private final boolean networkEnabled;
 
     public IngestionService(SourceRepository sourceRepository,
@@ -46,6 +48,9 @@ public class IngestionService {
 
     @Transactional
     public IngestionResult run() {
+        if (!localIngestionLock.tryLock()) {
+            return busyResult();
+        }
         seedSources();
         boolean lock = redisGateway.tryLock("devbrief:ingest:lock", Duration.ofSeconds(45));
         List<Source> sources = sourceRepository.findByEnabledTrueOrderByNameAsc();
@@ -105,8 +110,19 @@ public class IngestionService {
             if (lock) {
                 redisGateway.release("devbrief:ingest:lock");
             }
+            localIngestionLock.unlock();
         }
         return new IngestionResult(sources.size(), imported, failed, sourceResults);
+    }
+
+    private IngestionResult busyResult() {
+        String message = "이미 수집 작업이 실행 중입니다.";
+        return new IngestionResult(
+                0,
+                0,
+                List.of("수집 작업"),
+                List.of(new SourceResult("수집 작업", SourceFetchStatus.FAILED, 0, 0, false, message))
+        );
     }
 
     @Transactional

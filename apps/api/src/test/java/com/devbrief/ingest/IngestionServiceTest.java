@@ -6,6 +6,12 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -72,5 +78,69 @@ class IngestionServiceTest {
         assertThat(working.getLastArticleCount()).isEqualTo(1);
         assertThat(working.isLastUsedFallback()).isTrue();
         verify(articleRepository).save(any(Article.class));
+    }
+
+    @Test
+    void returnsBusyResultWhenAnotherIngestionIsAlreadyRunning() throws Exception {
+        Source source = Source.create("Working Feed", "RSS", "https://example.com/working.xml", "AI Models");
+        SourceRepository sourceRepository = mock(SourceRepository.class);
+        ArticleRepository articleRepository = mock(ArticleRepository.class);
+        RedisGateway redisGateway = mock(RedisGateway.class);
+        NewsSourceCatalog catalog = mock(NewsSourceCatalog.class);
+        CountDownLatch firstFetchStarted = new CountDownLatch(1);
+        CountDownLatch releaseFirstFetch = new CountDownLatch(1);
+        AtomicInteger fetchCalls = new AtomicInteger();
+
+        when(sourceRepository.findByEnabledTrueOrderByNameAsc()).thenReturn(List.of(source));
+        when(catalog.defaults()).thenReturn(List.of());
+        when(articleRepository.existsByContentHash(any())).thenReturn(false);
+        when(catalog.demoArticlesFor(source)).thenAnswer(invocation -> {
+            if (fetchCalls.incrementAndGet() == 1) {
+                firstFetchStarted.countDown();
+                releaseFirstFetch.await(2, TimeUnit.SECONDS);
+            }
+            return List.of(new ParsedArticle(
+                    null,
+                    "AI Models",
+                    "Working model update",
+                    "https://example.com/working",
+                    "Working Feed",
+                    Instant.parse("2026-04-24T09:00:00Z"),
+                    "A working source imports once while another run waits."
+            ));
+        });
+
+        IngestionService service = new IngestionService(
+                sourceRepository,
+                articleRepository,
+                new ContentHashService(),
+                catalog,
+                mock(RssFeedParser.class),
+                new GitHubTrendingParser(),
+                redisGateway,
+                false
+        );
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            Future<IngestionService.IngestionResult> firstRun = executor.submit(service::run);
+            assertThat(firstFetchStarted.await(1, TimeUnit.SECONDS)).isTrue();
+
+            IngestionService.IngestionResult secondRun = service.run();
+
+            assertThat(secondRun.sourcesChecked()).isZero();
+            assertThat(secondRun.articlesImported()).isZero();
+            assertThat(secondRun.failedSources()).containsExactly("수집 작업");
+            assertThat(secondRun.sourceResults()).hasSize(1);
+            assertThat(secondRun.sourceResults().get(0).sourceName()).isEqualTo("수집 작업");
+            assertThat(secondRun.sourceResults().get(0).status()).isEqualTo(SourceFetchStatus.FAILED);
+            assertThat(secondRun.sourceResults().get(0).message()).isEqualTo("이미 수집 작업이 실행 중입니다.");
+
+            releaseFirstFetch.countDown();
+            assertThat(firstRun.get(1, TimeUnit.SECONDS).articlesImported()).isEqualTo(1);
+        } finally {
+            releaseFirstFetch.countDown();
+            executor.shutdownNow();
+        }
     }
 }

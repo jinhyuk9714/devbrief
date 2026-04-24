@@ -2,6 +2,11 @@
 
 DevBrief는 AI/개발 뉴스를 개발자 액션까지 정리해주는 한국어 데일리 브리핑 서비스형 풀스택 포트폴리오입니다.
 
+Live demo:
+
+- Web: https://web-eight-rho-31.vercel.app
+- API: https://devbrief-api-zbbv.onrender.com
+
 단순 기사 목록이 아니라 여러 source에서 같은 신호를 묶고, 다음 정보를 한 화면에서 보여줍니다.
 
 - 무슨 일인지
@@ -111,8 +116,10 @@ Deployment steps:
 
 Deployment URLs:
 
-- Web: fill in after Vercel deploy
-- API: fill in after Render deploy
+- Web: https://web-eight-rho-31.vercel.app
+- API: https://devbrief-api-zbbv.onrender.com
+
+Current public demo note: the deployed API is running as a free Render Docker web service with H2 memory storage because the Render Blueprint path for managed PostgreSQL/Key Value requires payment info on the workspace. The committed `render.yaml` remains the recommended PostgreSQL/Redis setup for the full portfolio deployment.
 
 ## Verification
 
