@@ -22,10 +22,14 @@ export function TrendRadar({ trends }: { trends: TrendItem[] }) {
                   <span>{item.title}</span>
                   <strong>{item.score}</strong>
                 </div>
+                <div className="trend-metric">
+                  <span>신호 강도</span>
+                  <strong>{item.score}</strong>
+                </div>
                 <div className="trend-bar" aria-hidden>
                   <span style={{ width: `${item.score}%` }} />
                 </div>
-                <p>{item.articleCount}개 연결 기사</p>
+                <p>{`${item.articleCount}개 연결 기사`}</p>
               </div>
             ))}
           </div>

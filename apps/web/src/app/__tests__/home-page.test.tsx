@@ -9,13 +9,20 @@ vi.mock("../../lib/api", () => ({
 }));
 
 describe("HomePage", () => {
-  it("explains the service with a clear news briefing hero", async () => {
+  it("opens as a briefing desk with a lead story and queue", async () => {
     render(await HomePage());
 
-    expect(screen.getByText("AI/개발 뉴스 데일리 브리핑")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "오늘 나온 AI/개발 뉴스를 5분 안에 이해하세요" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "오늘 브리핑 보기" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "시스템 데모 보기" })).toBeInTheDocument();
+    expect(screen.getByText("오늘의 AI/개발 브리핑")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "5분 안에 읽고 바로 해볼 것까지 정리합니다" })).toBeInTheDocument();
+
+    const leadStory = screen.getByRole("article", { name: "대표 브리핑" });
+    expect(within(leadStory).getByRole("heading", { name: todayBriefings.briefings[0].title })).toBeInTheDocument();
+    expect(within(leadStory).getByText("요약")).toBeInTheDocument();
+    expect(within(leadStory).getByText("왜 중요")).toBeInTheDocument();
+    expect(within(leadStory).getByText("해볼 것")).toBeInTheDocument();
+
+    const queue = screen.getByRole("region", { name: "브리핑 큐" });
+    expect(within(queue).getByText(todayBriefings.briefings[1].title)).toBeInTheDocument();
   });
 
   it("keeps operational cache labels out of the home experience", async () => {
@@ -24,15 +31,17 @@ describe("HomePage", () => {
     expect(screen.queryByText("Redis")).not.toBeInTheDocument();
     expect(screen.queryByText("핫 캐시")).not.toBeInTheDocument();
     expect(screen.queryByText("출처 상태")).not.toBeInTheDocument();
+    expect(screen.queryByText("시스템 데모 보기")).not.toBeInTheDocument();
+    expect(screen.queryByText("시스템이 브리핑을 만드는 방식")).not.toBeInTheDocument();
   });
 
-  it("shows the user value before the system implementation flow", async () => {
+  it("keeps concise user value language on the home page", async () => {
     render(await HomePage());
 
     const valueSection = screen.getByRole("region", { name: "브리핑 구성" });
-    expect(within(valueSection).getByRole("heading", { name: "무슨 일" })).toBeInTheDocument();
-    expect(within(valueSection).getByRole("heading", { name: "왜 중요" })).toBeInTheDocument();
-    expect(within(valueSection).getByRole("heading", { name: "해볼 것" })).toBeInTheDocument();
-    expect(screen.getByText("시스템이 브리핑을 만드는 방식")).toBeInTheDocument();
+    expect(within(valueSection).getByText("무슨 일")).toBeInTheDocument();
+    expect(within(valueSection).getByText("왜 중요")).toBeInTheDocument();
+    expect(within(valueSection).getByText("해볼 것")).toBeInTheDocument();
+    expect(within(valueSection).getByRole("heading", { name: "뉴스를 사건으로 묶습니다" })).toBeInTheDocument();
   });
 });

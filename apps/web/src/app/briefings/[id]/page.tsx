@@ -15,22 +15,31 @@ export default async function BriefingDetailPage({ params }: { params: Promise<{
       <section className="detail-header">
         <p className="eyebrow">{briefing.category} / 중요도 {briefing.importance}</p>
         <h1>{briefing.title}</h1>
-        <p>{briefing.summary}</p>
+        <div className="detail-summary">
+          <span className="field-label">요약</span>
+          <p>{briefing.summary}</p>
+        </div>
         <p className="trust-note">이 브리핑은 수집된 여러 원문을 묶어 생성됨</p>
       </section>
 
       <section className="detail-grid">
         <div className="detail-main">
-          <h2>왜 중요한가</h2>
-          <p>{briefing.whyItMatters}</p>
-          <h2>핵심 포인트</h2>
-          <ul className="check-list">
-            {briefing.keyPoints.map((item) => <li key={item}>{item}</li>)}
-          </ul>
-          <h2>개발자 액션</h2>
-          <ul className="check-list">
-            {briefing.actionItems.map((item) => <li key={item}>{item}</li>)}
-          </ul>
+          <section className="reader-block">
+            <h2>왜 중요한가</h2>
+            <p>{briefing.whyItMatters}</p>
+          </section>
+          <section className="reader-block">
+            <h2>개발자 액션</h2>
+            <ul className="check-list">
+              {briefing.actionItems.map((item) => <li key={item}>{item}</li>)}
+            </ul>
+          </section>
+          <section className="reader-block">
+            <h2>핵심 포인트</h2>
+            <ul className="check-list">
+              {briefing.keyPoints.map((item) => <li key={item}>{item}</li>)}
+            </ul>
+          </section>
         </div>
         <aside className="detail-side">
           <h2>원문 출처</h2>

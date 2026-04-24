@@ -1,17 +1,22 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { BriefingList } from "../briefing-list";
 import { todayBriefings } from "../../lib/demo-data";
 
 describe("BriefingList", () => {
-  it("renders briefing cards as news summaries with explicit labels", () => {
+  it("renders a lead story and compact queue for the briefing desk", () => {
     render(<BriefingList briefings={todayBriefings.briefings} />);
 
-    expect(screen.getByText("AI 모델")).toBeInTheDocument();
-    expect(screen.getByText(/중요도 92/)).toBeInTheDocument();
-    expect(screen.getAllByText(/4분 읽기/).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText(/3개 출처/)).toBeInTheDocument();
-    expect(screen.getAllByText("요약").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("왜 중요").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("해볼 것").length).toBeGreaterThanOrEqual(1);
+    const leadStory = screen.getByRole("article", { name: "대표 브리핑" });
+    expect(within(leadStory).getByText("AI 모델")).toBeInTheDocument();
+    expect(within(leadStory).getByText(/중요도 92/)).toBeInTheDocument();
+    expect(within(leadStory).getByText(/4분 읽기/)).toBeInTheDocument();
+    expect(within(leadStory).getByText(/3개 출처/)).toBeInTheDocument();
+    expect(within(leadStory).getByText("요약")).toBeInTheDocument();
+    expect(within(leadStory).getByText("왜 중요")).toBeInTheDocument();
+    expect(within(leadStory).getByText("해볼 것")).toBeInTheDocument();
+
+    const queue = screen.getByRole("region", { name: "브리핑 큐" });
+    expect(within(queue).getByText(todayBriefings.briefings[1].title)).toBeInTheDocument();
+    expect(within(queue).getAllByText(/개 출처/).length).toBeGreaterThanOrEqual(1);
   });
 });
