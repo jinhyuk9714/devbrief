@@ -1,0 +1,24 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: ${DEVBRIEF_DATABASE_URL:jdbc:postgresql://localhost:5432/devbrief}
+    username: ${DEVBRIEF_DATABASE_USER:devbrief}
+    password: ${DEVBRIEF_DATABASE_PASSWORD:devbrief}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  data:
+    redis:
+      host: ${DEVBRIEF_REDIS_HOST:localhost}
+      port: ${DEVBRIEF_REDIS_PORT:6379}
+
+devbrief:
+  frontend-origin: ${DEVBRIEF_FRONTEND_ORIGIN:http://localhost:3000}
+  ingestion:
+    network-enabled: ${DEVBRIEF_NETWORK_ENABLED:false}
+  demo:
+    seed-on-startup: ${DEVBRIEF_SEED_ON_STARTUP:true}
+
