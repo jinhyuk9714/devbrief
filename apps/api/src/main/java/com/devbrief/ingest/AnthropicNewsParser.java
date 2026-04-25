@@ -40,7 +40,7 @@ public class AnthropicNewsParser {
     private String title(Element link) {
         Element heading = link.selectFirst("h1, h2, h3, h4");
         String value = heading == null ? link.text() : heading.text();
-        return clean(value);
+        return cleanTitle(value);
     }
 
     private String excerpt(Element link) {
@@ -55,5 +55,13 @@ public class AnthropicNewsParser {
 
     private String clean(String value) {
         return value == null ? "" : value.replaceAll("\\s+", " ").trim();
+    }
+
+    private String cleanTitle(String value) {
+        String cleaned = clean(value);
+        return cleaned.replaceFirst(
+                "^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\s+\\d{1,2},\\s+\\d{4}\\s*(Announcements|Product|Company|Research|News)?\\s*",
+                ""
+        ).trim();
     }
 }

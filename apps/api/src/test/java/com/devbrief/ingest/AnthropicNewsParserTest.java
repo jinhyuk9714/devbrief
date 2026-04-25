@@ -15,7 +15,7 @@ class AnthropicNewsParserTest {
 
         var articles = new AnthropicNewsParser().parse(html, 12L, "AI Models");
 
-        assertThat(articles).hasSize(2);
+        assertThat(articles).hasSize(3);
         assertThat(articles.getFirst().sourceId()).isEqualTo(12L);
         assertThat(articles.getFirst().category()).isEqualTo("AI Models");
         assertThat(articles.getFirst().title()).isEqualTo("Claude Opus 4.7");
@@ -23,6 +23,9 @@ class AnthropicNewsParserTest {
         assertThat(articles.getFirst().author()).isEqualTo("Anthropic");
         assertThat(articles.getFirst().excerpt()).contains("long-running agent workflows");
         assertThat(articles).extracting(ParsedArticle::title)
+                .contains("Introducing The Anthropic Institute")
                 .doesNotContain("Research link outside newsroom");
+        assertThat(articles).extracting(ParsedArticle::title)
+                .noneMatch(title -> title.contains("Announcements"));
     }
 }

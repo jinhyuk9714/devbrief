@@ -5,6 +5,9 @@ import { getBriefingDetail } from "../../../lib/api";
 export default async function BriefingDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const briefing = await getBriefingDetail(id);
+  const trustNote = briefing.articleCount === 1
+    ? "이 브리핑은 단일 원문을 기준으로 생성됨"
+    : `이 브리핑은 ${briefing.articleCount}개 원문을 묶어 생성됨`;
 
   return (
     <main className="detail-page">
@@ -19,7 +22,7 @@ export default async function BriefingDetailPage({ params }: { params: Promise<{
           <span className="field-label">요약</span>
           <p>{briefing.summary}</p>
         </div>
-        <p className="trust-note">이 브리핑은 수집된 여러 원문을 묶어 생성됨</p>
+        <p className="trust-note">{trustNote}</p>
       </section>
 
       <section className="detail-grid">

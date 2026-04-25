@@ -6,6 +6,7 @@ import com.devbrief.domain.TopicCluster;
 import com.devbrief.i18n.KoreanDisplayText;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 public final class BriefingDtos {
@@ -22,22 +23,25 @@ public final class BriefingDtos {
             int importance,
             int readingMinutes,
             int sourceCount,
+            int articleCount,
             String summary,
             String whyItMatters,
             List<String> actionItems
     ) {
         static BriefingSummary from(Briefing briefing, KoreanDisplayText displayText) {
             TopicCluster cluster = briefing.getCluster();
+            List<Article> articles = articlesForDisplay(cluster);
             return new BriefingSummary(
                     briefing.getId(),
                     displayText.briefingTitle(cluster.getTitle()),
                     displayText.category(cluster.getCategory()),
                     cluster.getScore(),
                     briefing.getReadingMinutes(),
-                    (int) cluster.getArticles().stream().map(article -> article.getSource().getName()).distinct().count(),
-                    displayText.summary(cluster.getTitle(), cluster.getCategory(), cluster.getArticles(), briefing.getSummary()),
-                    displayText.whyItMatters(cluster.getCategory(), cluster.getArticles(), briefing.getWhyItMatters()),
-                    displayText.actionItems(cluster.getCategory(), cluster.getArticles(), briefing.getActionItems())
+                    (int) articles.stream().map(article -> article.getSource().getName()).distinct().count(),
+                    cluster.getArticleCount(),
+                    displayText.summary(cluster.getTitle(), cluster.getCategory(), articles, briefing.getSummary()),
+                    displayText.whyItMatters(cluster.getCategory(), articles, briefing.getWhyItMatters()),
+                    displayText.actionItems(cluster.getCategory(), articles, briefing.getActionItems())
             );
         }
     }
@@ -48,6 +52,8 @@ public final class BriefingDtos {
             String category,
             int importance,
             int readingMinutes,
+            int sourceCount,
+            int articleCount,
             String summary,
             String whyItMatters,
             List<String> keyPoints,
@@ -58,8 +64,9 @@ public final class BriefingDtos {
     ) {
         static BriefingDetail from(Briefing briefing, KoreanDisplayText displayText) {
             TopicCluster cluster = briefing.getCluster();
-            List<ArticleLink> sources = cluster.getArticles().stream().map(ArticleLink::from).toList();
-            List<TimelineItem> timeline = cluster.getArticles().stream()
+            List<Article> articles = articlesForDisplay(cluster);
+            List<ArticleLink> sources = articles.stream().map(ArticleLink::from).toList();
+            List<TimelineItem> timeline = articles.stream()
                     .map(article -> new TimelineItem(article.getPublishedAt(), article.getSource().getName(), article.getTitle()))
                     .toList();
             return new BriefingDetail(
@@ -68,10 +75,12 @@ public final class BriefingDtos {
                     displayText.category(cluster.getCategory()),
                     cluster.getScore(),
                     briefing.getReadingMinutes(),
-                    displayText.summary(cluster.getTitle(), cluster.getCategory(), cluster.getArticles(), briefing.getSummary()),
-                    displayText.whyItMatters(cluster.getCategory(), cluster.getArticles(), briefing.getWhyItMatters()),
-                    displayText.keyPoints(cluster.getArticles(), briefing.getKeyPoints()),
-                    displayText.actionItems(cluster.getCategory(), cluster.getArticles(), briefing.getActionItems()),
+                    (int) articles.stream().map(article -> article.getSource().getName()).distinct().count(),
+                    cluster.getArticleCount(),
+                    displayText.summary(cluster.getTitle(), cluster.getCategory(), articles, briefing.getSummary()),
+                    displayText.whyItMatters(cluster.getCategory(), articles, briefing.getWhyItMatters()),
+                    displayText.keyPoints(articles, briefing.getKeyPoints()),
+                    displayText.actionItems(cluster.getCategory(), articles, briefing.getActionItems()),
                     briefing.getRiskNotes(),
                     sources,
                     timeline
@@ -93,5 +102,22 @@ public final class BriefingDtos {
     }
 
     public record TimelineItem(Instant at, String source, String title) {
+    }
+
+    private static List<Article> articlesForDisplay(TopicCluster cluster) {
+        List<Article> articles = new ArrayList<>(cluster.getArticles());
+        int representativeIndex = -1;
+        for (int index = 0; index < articles.size(); index++) {
+            if (articles.get(index).getTitle().equals(cluster.getTitle())) {
+                representativeIndex = index;
+                break;
+            }
+        }
+        if (representativeIndex <= 0) {
+            return articles;
+        }
+        Article representative = articles.remove(representativeIndex);
+        articles.add(0, representative);
+        return articles;
     }
 }

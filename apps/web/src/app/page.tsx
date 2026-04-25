@@ -6,8 +6,8 @@ import { getTodayBriefings, getTrends } from "../lib/api";
 const valuePillars = [
   {
     label: "무슨 일",
-    title: "뉴스를 사건으로 묶습니다",
-    body: "여러 출처에서 나온 같은 신호를 묶어 오늘 실제로 벌어진 일을 짧게 정리합니다."
+    title: "중요 기사를 먼저 읽습니다",
+    body: "단일 원문과 관련 원문 묶음을 구분해 오늘 실제로 확인할 뉴스를 정리합니다."
   },
   {
     label: "왜 중요",
@@ -33,6 +33,7 @@ export default async function HomePage() {
     minute: "2-digit"
   });
   const totalSources = today.briefings.reduce((total, briefing) => total + briefing.sourceCount, 0);
+  const totalArticles = today.briefings.reduce((total, briefing) => total + briefing.articleCount, 0);
 
   return (
     <main className="briefing-desk-page">
@@ -47,7 +48,7 @@ export default async function HomePage() {
             </h1>
           </div>
           <p>
-            <span>여러 출처에서 같은 신호를 묶고,</span>
+            <span>중요 기사와 관련 신호를 읽고,</span>
             <span>개발자가 지금 확인할 일만</span>
             <span>남깁니다.</span>
           </p>
@@ -55,7 +56,7 @@ export default async function HomePage() {
         <div className="desk-toolbar" aria-label="브리핑 상태">
           <span>{generatedAt} 생성</span>
           <span>{today.briefings.length}개 브리핑</span>
-          <span>{totalSources}개 출처 신호</span>
+          <span>{totalArticles}개 원문 / {totalSources}개 출처</span>
         </div>
         <BriefingList briefings={today.briefings} />
       </section>
@@ -74,7 +75,7 @@ export default async function HomePage() {
         <div className="section-heading">
           <div>
             <h2>지금 같이 움직이는 신호</h2>
-            <p>{trends.trends.length}개 묶인 신호를 일간 기준으로 봅니다.</p>
+            <p>{trends.trends.length}개 관련 신호를 일간 기준으로 봅니다.</p>
           </div>
           <Link className="text-action" href="/trends?range=day">트렌드 전체 보기</Link>
         </div>

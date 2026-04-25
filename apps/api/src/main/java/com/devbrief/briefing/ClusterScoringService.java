@@ -42,7 +42,10 @@ public class ClusterScoringService {
         }
 
         return groups.stream()
-                .map(group -> TopicCluster.create(titleFor(group.articles), group.category, score(group.articles), group.articles))
+                .map(group -> {
+                    List<Article> orderedArticles = representativeFirst(group.articles);
+                    return TopicCluster.create(titleFor(orderedArticles), group.category, score(orderedArticles), orderedArticles);
+                })
                 .sorted(Comparator.comparingInt(TopicCluster::getScore).reversed()
                         .thenComparing(TopicCluster::getLastSeenAt, Comparator.nullsLast(Comparator.reverseOrder())))
                 .toList();
@@ -112,10 +115,29 @@ public class ClusterScoringService {
     }
 
     private String titleFor(List<Article> group) {
-        return group.stream()
-                .max(Comparator.comparingInt(article -> signalCount(article.getTitle() + " " + article.getExcerpt())))
+        return representativeArticle(group)
                 .map(Article::getTitle)
                 .orElse("Developer news update");
+    }
+
+    private List<Article> representativeFirst(List<Article> group) {
+        Optional<Article> representative = representativeArticle(group);
+        if (representative.isEmpty()) {
+            return group;
+        }
+        Article lead = representative.get();
+        List<Article> ordered = new ArrayList<>();
+        ordered.add(lead);
+        group.stream()
+                .filter(article -> article != lead)
+                .forEach(ordered::add);
+        return ordered;
+    }
+
+    private Optional<Article> representativeArticle(List<Article> group) {
+        return group.stream()
+                .max(Comparator.comparingInt((Article article) -> signalCount(article.getTitle() + " " + article.getExcerpt()))
+                        .thenComparing(Article::getPublishedAt, Comparator.nullsFirst(Comparator.naturalOrder())));
     }
 
     private int score(List<Article> group) {

@@ -10,6 +10,7 @@ export const todayBriefings: TodayBriefings = {
       importance: 92,
       readingMinutes: 4,
       sourceCount: 3,
+      articleCount: 2,
       summary:
         "AI 모델 제공사들이 긴 컨텍스트, 도구 호출, 세션 메모리를 더 제품화하면서 개발자는 에이전트 워크플로를 작은 실험 단위로 검증해야 합니다.",
       whyItMatters:
@@ -27,6 +28,7 @@ export const todayBriefings: TodayBriefings = {
       importance: 88,
       readingMinutes: 5,
       sourceCount: 4,
+      articleCount: 4,
       summary:
         "MCP 서버가 문서, GitHub, 로컬 도구, SaaS API를 연결하는 표준 인터페이스로 빠르게 확산되고 있습니다.",
       whyItMatters:
@@ -44,6 +46,7 @@ export const todayBriefings: TodayBriefings = {
       importance: 84,
       readingMinutes: 3,
       sourceCount: 2,
+      articleCount: 2,
       summary:
         "AI가 코드를 생성하는 지점에서 secret scan과 정책 검사를 더 일찍 실행하려는 흐름이 강해지고 있습니다.",
       whyItMatters:
@@ -61,6 +64,7 @@ export const todayBriefings: TodayBriefings = {
       importance: 77,
       readingMinutes: 4,
       sourceCount: 2,
+      articleCount: 2,
       summary:
         "브라우저 자동화 도구들이 테스트 생성보다 trace replay와 실패 원인 설명에 더 많은 기능을 붙이고 있습니다.",
       whyItMatters:
@@ -78,6 +82,7 @@ export const todayBriefings: TodayBriefings = {
       importance: 71,
       readingMinutes: 3,
       sourceCount: 2,
+      articleCount: 2,
       summary:
         "관리형 Postgres 서비스가 vector search와 운영 메트릭 기본값을 강화하면서 RAG 프로토타입의 운영 진입 장벽이 낮아지고 있습니다.",
       whyItMatters:

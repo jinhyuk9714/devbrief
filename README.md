@@ -11,7 +11,7 @@ Live demo:
 - Web: https://web-eight-rho-31.vercel.app
 - API: https://devbrief-api-zbbv.onrender.com
 
-단순 기사 목록이 아니라 여러 source에서 같은 신호를 묶고, 다음 정보를 한 화면에서 보여줍니다.
+단순 기사 목록이 아니라 단일 중요 기사와 여러 source에서 반복되는 관련 신호를 구분하고, 다음 정보를 한 화면에서 보여줍니다.
 
 - 무슨 일인지
 - 왜 중요한지
@@ -48,6 +48,7 @@ flowchart LR
 - 여러 source를 주기적으로 수집하고 source별 성공, 실패, fallback 상태를 남깁니다.
 - RSS뿐 아니라 GitHub Trending HTML과 Anthropic 뉴스룸 HTML도 parser fixture로 검증합니다.
 - source별 원본 응답은 최신 40개 기사까지만 사용해 한 source가 브리핑 후보를 과하게 지배하지 않게 합니다.
+- 브리핑 화면에서는 `단일 출처/단일 원문`과 `N개 출처/N개 원문 묶음`을 구분해, 단일 기사 요약을 다중 source 클러스터처럼 과장하지 않습니다.
 - URL/content hash로 중복을 줄인 뒤 제목과 excerpt의 anchor 신호, token overlap, BM25/IDF 가중 유사도를 함께 사용해 휴리스틱 그룹핑을 수행합니다.
 - 그룹별 점수는 기사 수, 최신성, 개발자에게 의미 있는 키워드를 함께 반영합니다.
 - OpenAI 키가 있으면 품질 강화 프롬프트와 응답 검증을 거쳐 한국어 브리핑을 생성하고, 없거나 실패하면 기사 제목, source, excerpt를 섞은 deterministic fallback으로 데모가 깨지지 않게 합니다.
@@ -202,6 +203,7 @@ DevBrief is meant to demonstrate more than CRUD:
 - RSS parsing plus GitHub Trending and Anthropic newsroom HTML parsing
 - duplicate detection through content hashes
 - anchor + BM25/IDF heuristic grouping, scoring, and Korean briefing generation
+- article/source count visibility so single-source briefings and multi-article clusters are clearly distinguished
 - OpenAI provider abstraction with prompt/response validation, representative quality fixtures, and deterministic fallback
 - Redis distributed gate/cache status with local lock fallback
 - responsive Korean product UI for home, detail, trends, and admin views

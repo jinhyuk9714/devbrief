@@ -51,13 +51,11 @@ public class KoreanDisplayText {
         }
         if (!articles.isEmpty()) {
             Article lead = articles.get(0);
-            return "%s: %s 원문 '%s'에서 포착된 신호입니다. %s"
-                    .formatted(
-                            briefingTitle(title),
-                            lead.getSource().getName(),
-                            lead.getTitle(),
-                            articleSpecificSummaryBody(category, lead)
-                    );
+            String scope = articles.size() == 1
+                    ? "단일 원문 브리핑입니다"
+                    : "%d개 관련 원문을 묶은 브리핑입니다".formatted(articles.size());
+            return "%s: %s. 대표 원문은 %s의 '%s'이며, %s"
+                    .formatted(briefingTitle(title), scope, lead.getSource().getName(), lead.getTitle(), articleSpecificSummaryBody(category, lead));
         }
         return "%s: %s".formatted(briefingTitle(title), summaryBody(category));
     }
@@ -75,8 +73,11 @@ public class KoreanDisplayText {
             return base;
         }
         Article lead = articles.get(0);
-        return "%s 특히 %s의 '%s' 신호는 이 흐름이 실제 도구 선택이나 워크플로 변화로 이어지는지 확인하게 합니다. 근거 단서는 \"%s\"입니다."
-                .formatted(base, lead.getSource().getName(), lead.getTitle(), excerptSignal(lead));
+        String scope = articles.size() == 1
+                ? "단일 원문 기준으로"
+                : "%d개 원문 묶음 중 대표 원문 기준으로".formatted(articles.size());
+        return "%s %s %s의 '%s'가 실제 도구 선택이나 워크플로 변화와 연결되는지 확인해야 합니다. 핵심 단서는 \"%s\"입니다."
+                .formatted(base, scope, lead.getSource().getName(), lead.getTitle(), excerptSignal(lead));
     }
 
     public List<String> keyPoints(List<Article> articles, List<String> storedKeyPoints) {
@@ -85,8 +86,8 @@ public class KoreanDisplayText {
         }
         return articles.stream()
                 .limit(3)
-                .map(article -> "%s 원문에서 관련 신호를 확인했습니다: %s"
-                        .formatted(article.getSource().getName(), article.getTitle()))
+                .map(article -> "%s: '%s'에서 \"%s\" 단서를 확인했습니다."
+                        .formatted(article.getSource().getName(), article.getTitle(), excerptSignal(article)))
                 .toList();
     }
 
@@ -100,7 +101,7 @@ public class KoreanDisplayText {
 
     public List<String> actionItems(String category, List<Article> articles, List<String> storedActionItems) {
         List<String> base = baseActionItems(category);
-        if (storedActionItems != null && !storedActionItems.isEmpty() && !storedActionItems.equals(base)) {
+        if (storedActionItems != null && !storedActionItems.isEmpty() && !storedActionItems.equals(base) && !looksLikeOldActionItems(storedActionItems)) {
             return storedActionItems;
         }
         if (articles.isEmpty()) {
@@ -108,7 +109,7 @@ public class KoreanDisplayText {
         }
         Article lead = articles.get(0);
         return List.of(
-                "%s의 '%s' 원문을 열어 \"%s\" 단서가 현재 스택에 미치는 영향 표시하기"
+                "%s의 '%s' 원문을 열어 \"%s\" 단서가 현재 스택에 미치는 영향을 정리하기"
                         .formatted(lead.getSource().getName(), lead.getTitle(), excerptSignal(lead)),
                 base.get(1),
                 base.get(2)
@@ -176,7 +177,7 @@ public class KoreanDisplayText {
             return categoryBody;
         }
         return "%s 핵심 단서는 \"%s\"입니다."
-                .formatted(categoryBody, excerpt.trim());
+                .formatted(categoryBody, excerptSignal(article));
     }
 
     private String excerptSignal(Article article) {
@@ -184,11 +185,18 @@ public class KoreanDisplayText {
         if (excerpt == null || excerpt.isBlank()) {
             return "원문 제목과 출처";
         }
-        String trimmed = excerpt.replaceAll("\\s+", " ").trim();
+        String trimmed = cleanExcerpt(excerpt);
         if (trimmed.length() <= 120) {
             return trimmed;
         }
         return trimmed.substring(0, 117).trim() + "...";
+    }
+
+    private String cleanExcerpt(String excerpt) {
+        return excerpt.replaceAll("\\s+", " ")
+                .replaceFirst("(?i)^arXiv:\\d{4}\\.\\d+(v\\d+)?\\s+Announce Type:\\s*\\w+\\s+Abstract:\\s*", "")
+                .replaceFirst("(?i)^Abstract:\\s*", "")
+                .trim();
     }
 
     private boolean looksLikeDeterministicEnglish(String title, String storedSummary) {
@@ -196,7 +204,9 @@ public class KoreanDisplayText {
     }
 
     private boolean looksLikeGenericKoreanFallback(String title, String category, String storedSummary) {
-        return storedSummary.equals("%s: %s".formatted(briefingTitle(title), summaryBody(category)));
+        return storedSummary.equals("%s: %s".formatted(briefingTitle(title), summaryBody(category)))
+                || storedSummary.contains("포착된 신호입니다")
+                || storedSummary.contains("practical implications for developer teams");
     }
 
     private boolean shouldUseStoredWhy(String category, String storedWhyItMatters) {
@@ -209,6 +219,17 @@ public class KoreanDisplayText {
         if (storedWhyItMatters.contains("practical implications for developer teams")) {
             return false;
         }
+        if (storedWhyItMatters.contains("신호는 이 흐름이 실제 도구 선택이나 워크플로 변화로 이어지는지")) {
+            return false;
+        }
         return true;
+    }
+
+    private boolean looksLikeOldActionItems(List<String> actionItems) {
+        return actionItems.stream().anyMatch(action ->
+                action.contains("현재 스택에 미치는 영향 표시하기")
+                        || action.contains("단서가 현재 스택에 미치는 영향 표시하기")
+                        || action.contains("practical implications for developer teams")
+        );
     }
 }

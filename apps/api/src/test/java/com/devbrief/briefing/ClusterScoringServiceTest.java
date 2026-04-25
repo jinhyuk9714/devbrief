@@ -47,13 +47,30 @@ class ClusterScoringServiceTest {
         var clusters = service.cluster(List.of(firstTrace, secondTrace, unrelatedAgent));
 
         assertThat(clusters).anySatisfy(cluster -> {
-            assertThat(cluster.getTitle()).contains("trace");
+            assertThat(cluster.getTitle()).containsIgnoringCase("trace");
             assertThat(cluster.getArticleCount()).isEqualTo(2);
         });
         assertThat(clusters).anySatisfy(cluster -> {
             assertThat(cluster.getTitle()).contains("Agent runtime");
             assertThat(cluster.getArticleCount()).isEqualTo(1);
         });
+    }
+
+    @Test
+    void putsTitleRepresentativeArticleFirstInCluster() {
+        Source source = Source.create("GitHub Trending", "API", "https://github.com/trending", "Open Source");
+        Article firstSeen = Article.create(source, "MCP adoption note", "https://example.com/mcp-note", "GitHub",
+                Instant.parse("2026-04-24T08:00:00Z"), "MCP use is growing across teams.", "mcp-note");
+        Article representative = Article.create(source, "MCP security workflow model for coding agents", "https://example.com/mcp-security", "GitHub",
+                Instant.parse("2026-04-24T09:00:00Z"), "MCP servers connect agent workflow security checks to developer tools.", "mcp-security");
+
+        ClusterScoringService service = new ClusterScoringService();
+
+        var clusters = service.cluster(List.of(firstSeen, representative));
+
+        TopicCluster cluster = clusters.getFirst();
+        assertThat(cluster.getTitle()).isEqualTo(representative.getTitle());
+        assertThat(cluster.getArticles().getFirst().getTitle()).isEqualTo(representative.getTitle());
     }
 
     @Test

@@ -19,4 +19,12 @@ describe("BriefingList", () => {
     expect(within(queue).getByText(todayBriefings.briefings[1].title)).toBeInTheDocument();
     expect(within(queue).getAllByText(/개 출처/).length).toBeGreaterThanOrEqual(1);
   });
+
+  it("labels single-source briefings without implying a multi-source cluster", () => {
+    render(<BriefingList briefings={[{ ...todayBriefings.briefings[0], sourceCount: 1, articleCount: 1 }]} />);
+
+    const leadStory = screen.getByRole("article", { name: "대표 브리핑" });
+    expect(within(leadStory).getByText(/단일 출처/)).toBeInTheDocument();
+    expect(within(leadStory).queryByText(/1개 출처/)).not.toBeInTheDocument();
+  });
 });

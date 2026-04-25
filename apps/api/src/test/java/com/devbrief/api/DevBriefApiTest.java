@@ -34,7 +34,9 @@ class DevBriefApiTest {
                 .andExpect(jsonPath("$.briefings[0].category").value("오픈소스"))
                 .andExpect(jsonPath("$.briefings[0].summary").exists())
                 .andExpect(jsonPath("$.briefings[0].whyItMatters").value(org.hamcrest.Matchers.containsString("오픈소스")))
-                .andExpect(jsonPath("$.briefings[0].sourceCount", greaterThanOrEqualTo(1)));
+                .andExpect(jsonPath("$.briefings[0].sourceCount", greaterThanOrEqualTo(1)))
+                .andExpect(jsonPath("$.briefings[0].articleCount", greaterThanOrEqualTo(1)))
+                .andExpect(jsonPath("$.briefings[0].actionItems[0]").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("현재 스택에 미치는 영향 표시하기"))));
     }
 
     @Test

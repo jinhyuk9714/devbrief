@@ -5,6 +5,7 @@ export type BriefingSummary = {
   importance: number;
   readingMinutes: number;
   sourceCount: number;
+  articleCount: number;
   summary: string;
   whyItMatters: string;
   actionItems: string[];

@@ -38,10 +38,12 @@ describe("HomePage", () => {
   it("keeps concise user value language on the home page", async () => {
     render(await HomePage());
 
+    expect(screen.getByText(/중요 기사와 관련 신호를 읽고/)).toBeInTheDocument();
+    expect(screen.queryByText(/여러 출처에서 같은 신호를 묶고/)).not.toBeInTheDocument();
     const valueSection = screen.getByRole("region", { name: "브리핑 구성" });
     expect(within(valueSection).getByText("무슨 일")).toBeInTheDocument();
     expect(within(valueSection).getByText("왜 중요")).toBeInTheDocument();
     expect(within(valueSection).getByText("해볼 것")).toBeInTheDocument();
-    expect(within(valueSection).getByRole("heading", { name: "뉴스를 사건으로 묶습니다" })).toBeInTheDocument();
+    expect(within(valueSection).getByRole("heading", { name: "중요 기사를 먼저 읽습니다" })).toBeInTheDocument();
   });
 });

@@ -3,12 +3,15 @@ import { ArrowUpRight, Clock, Gauge, Link2 } from "lucide-react";
 import type { BriefingSummary } from "../lib/types";
 
 function BriefingMeta({ briefing }: { briefing: BriefingSummary }) {
+  const sourceLabel = briefing.sourceCount === 1 ? "단일 출처" : `${briefing.sourceCount}개 출처`;
+  const articleLabel = briefing.articleCount === 1 ? "단일 원문" : `${briefing.articleCount}개 원문`;
   return (
     <div className="briefing-meta">
       <span>{briefing.category}</span>
       <span><Gauge size={14} aria-hidden /> 중요도 {briefing.importance}</span>
       <span><Clock size={14} aria-hidden /> {briefing.readingMinutes}분 읽기</span>
-      <span><Link2 size={14} aria-hidden /> {briefing.sourceCount}개 출처</span>
+      <span><Link2 size={14} aria-hidden /> {sourceLabel}</span>
+      <span>{articleLabel}</span>
     </div>
   );
 }
